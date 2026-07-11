@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-announcement
+      author: starter
+      changes:
+        - createTable:
+            tableName: announcements
+            columns:
+              - column: { name: id, type: varchar(36), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: title, type: varchar(160), constraints: { nullable: false } }
+              - column: { name: content, type: text, constraints: { nullable: false } }
+              - column: { name: published, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+              - column: { name: published_at, type: timestamp with time zone }
+              - column: { name: author_id, type: varchar(36), constraints: { nullable: false, foreignKeyName: fk_announcements_author, references: users(id) } }
+              - column: { name: version, type: bigint, defaultValueNumeric: 0, constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: updated_at, type: timestamp with time zone, constraints: { nullable: false } }
+        - createIndex:
+            tableName: announcements
+            indexName: idx_announcements_publication
+            columns:
+              - column: { name: published }
+              - column: { name: published_at, descending: true }

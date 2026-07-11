@@ -1,0 +1,45 @@
+name: spring-boot-starter-template
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-starter}
+      POSTGRES_USER: ${POSTGRES_USER:-starter}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-only-change-me}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  app:
+    profiles: ["postgres"]
+    build:
+      context: .
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-starter}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-starter}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-local-only-change-me}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET to externally supplied signing material}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "java", "-Dloader.main=com.yumg.starter.ContainerHealthCheck", "-cp", "/app/app.jar", "org.springframework.boot.loader.launch.PropertiesLauncher"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    ports:
+      - "${APP_PORT:-8080}:${SERVER_PORT:-8080}"
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

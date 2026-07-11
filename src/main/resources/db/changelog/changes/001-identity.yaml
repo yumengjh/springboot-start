@@ -1,0 +1,87 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-identity
+      author: starter
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column: { name: id, type: varchar(36), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: username, type: varchar(100), constraints: { nullable: false, unique: true, uniqueConstraintName: uk_users_username } }
+              - column: { name: display_name, type: varchar(160), constraints: { nullable: false } }
+              - column: { name: password_hash, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: status, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: locked_until, type: timestamp with time zone }
+              - column: { name: token_version, type: bigint, defaultValueNumeric: 0, constraints: { nullable: false } }
+              - column: { name: version, type: bigint, defaultValueNumeric: 0, constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: updated_at, type: timestamp with time zone, constraints: { nullable: false } }
+        - createIndex:
+            tableName: users
+            indexName: idx_users_username
+            columns: [ { column: { name: username } } ]
+        - createTable:
+            tableName: roles
+            columns:
+              - column: { name: id, type: varchar(36), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: code, type: varchar(100), constraints: { nullable: false, unique: true, uniqueConstraintName: uk_roles_code } }
+              - column: { name: display_name, type: varchar(160), constraints: { nullable: false } }
+              - column: { name: description, type: varchar(500) }
+              - column: { name: version, type: bigint, defaultValueNumeric: 0, constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: updated_at, type: timestamp with time zone, constraints: { nullable: false } }
+        - createTable:
+            tableName: permissions
+            columns:
+              - column: { name: id, type: varchar(36), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: code, type: varchar(160), constraints: { nullable: false, unique: true, uniqueConstraintName: uk_permissions_code } }
+              - column: { name: description, type: varchar(500) }
+              - column: { name: version, type: bigint, defaultValueNumeric: 0, constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: updated_at, type: timestamp with time zone, constraints: { nullable: false } }
+        - createIndex:
+            tableName: permissions
+            indexName: idx_permissions_code
+            columns: [ { column: { name: code } } ]
+        - createTable:
+            tableName: user_roles
+            columns:
+              - column: { name: user_id, type: varchar(36), constraints: { nullable: false, foreignKeyName: fk_user_roles_user, references: users(id) } }
+              - column: { name: role_id, type: varchar(36), constraints: { nullable: false, foreignKeyName: fk_user_roles_role, references: roles(id) } }
+        - createIndex:
+            tableName: user_roles
+            indexName: uk_user_roles
+            unique: true
+            columns:
+              - column: { name: user_id }
+              - column: { name: role_id }
+        - createTable:
+            tableName: role_permissions
+            columns:
+              - column: { name: role_id, type: varchar(36), constraints: { nullable: false, foreignKeyName: fk_role_permissions_role, references: roles(id) } }
+              - column: { name: permission_id, type: varchar(36), constraints: { nullable: false, foreignKeyName: fk_role_permissions_permission, references: permissions(id) } }
+        - createIndex:
+            tableName: role_permissions
+            indexName: uk_role_permissions
+            unique: true
+            columns:
+              - column: { name: role_id }
+              - column: { name: permission_id }
+        - createTable:
+            tableName: refresh_sessions
+            columns:
+              - column: { name: id, type: varchar(36), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: user_id, type: varchar(36), constraints: { nullable: false, foreignKeyName: fk_refresh_sessions_user, references: users(id) } }
+              - column: { name: family_id, type: varchar(36), constraints: { nullable: false } }
+              - column: { name: token_hash, type: varchar(64), constraints: { nullable: false, unique: true, uniqueConstraintName: uk_refresh_sessions_token_hash } }
+              - column: { name: issued_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: expires_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: consumed_at, type: timestamp with time zone }
+              - column: { name: revoked_at, type: timestamp with time zone }
+              - column: { name: client_ip, type: varchar(45) }
+              - column: { name: user_agent, type: varchar(500) }
+              - column: { name: version, type: bigint, defaultValueNumeric: 0, constraints: { nullable: false } }
+        - createIndex:
+            tableName: refresh_sessions
+            indexName: idx_refresh_sessions_token_hash
+            columns: [ { column: { name: token_hash } } ]

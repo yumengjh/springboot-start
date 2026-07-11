@@ -1,0 +1,121 @@
+# Deployment guide
+
+## Production checklist
+
+- Run Java 21 and the `postgres` profile. PostgreSQL must be reachable using `DB_URL`,
+  `DB_USERNAME`, and `DB_PASSWORD`; use a least-privilege application role and supported
+  TLS settings for the environment.
+- Supply the initial administrator variables only when bootstrap is required. Rotate or
+  remove the bootstrap secret after successful creation according to the secret
+  manager's policy.
+- Mount RSA signing material from a secret manager or secret file. Never bake private
+  keys, database passwords, tokens, or a populated `.env` into the image.
+- Configure exact CORS origins. Do not use a wildcard with credentialed browser
+  requests.
+- Keep forwarded-header handling disabled unless trusted proxy CIDRs are explicitly
+  configured. The immediate sender must be trusted before `Forwarded` or
+  `X-Forwarded-For` is considered; test the complete load-balancer/proxy chain.
+- Decide whether Swagger UI should be exposed. OpenAPI/Swagger exposure is configurable
+  in production; protect or disable it according to policy.
+- Ensure the runtime identity is non-root and can write only required paths. SQLite
+  storage is `/app/data` in the image, but PostgreSQL deployments should not depend on
+  container filesystem persistence.
+
+The exact property-to-environment bindings for JWT, trusted proxies, CORS, and Swagger
+must come from the implemented configuration and `.env.example`; the design does not
+define names for them, so deployment manifests should not invent aliases.
+
+## Health probes
+
+Use the public actuator groups, not sensitive actuator endpoints:
+
+```text
+Liveness:  GET /actuator/health/liveness
+Readiness: GET /actuator/health/readiness
+```
+
+Liveness answers whether the process should be restarted. Readiness gates traffic and
+should fail while required dependencies or startup work are unavailable. Set initial
+delays/timeouts for the platform and migration duration; avoid restart loops during a
+legitimate Liquibase rollout. `/api/v1/system/info` exposes non-sensitive build version,
+Git commit, and build time where available (`null`, not fabricated values, otherwise).
+
+## PostgreSQL backup and recovery
+
+Before schema rollout, take a provider snapshot or a consistent `pg_dump` using an
+appropriately privileged backup identity. Encrypt backups, restrict access, define
+retention, and monitor success. A backup is not proven until a restore test succeeds in
+an isolated database with application smoke tests.
+
+Keep database recovery point/time objectives explicit. Include roles/privileges and
+required extensions in recovery runbooks, while storing backup credentials outside the
+repository. Do not use `docker compose down --volumes` against data you need to retain.
+
+## Liquibase rollout
+
+Liquibase is the only schema-authoring mechanism; Hibernate runs with
+`ddl-auto: validate`. Review generated SQL against the target PostgreSQL version and
+take a backup before risky changes. Prefer backward-compatible expand/migrate/contract
+changes:
+
+1. Add nullable/new structures that old and new application versions tolerate.
+2. Deploy code that reads/writes the new representation and migrate data in bounded,
+   observable batches.
+3. Remove old structures only after rollback windows and old replicas are gone.
+
+Run one controlled migration actor or rely on Liquibase locking with deployment
+timeouts that prevent multiple rollouts from racing. Never edit an already-applied
+changeset; append a corrective changeset. If startup validation fails, stop traffic,
+inspect Liquibase state and logs, and choose forward repair or database restore based on
+the reviewed runbook—do not bypass validation.
+
+## GHCR publishing
+
+The image workflow runs for `main` pushes and `v*` tags, builds with BuildKit, scans
+with Trivy, and publishes ref/semantic tags to GitHub Container Registry. Workflow
+permissions are limited to repository read, package write, and the security-event scope
+needed by scanning. Pull requests do not receive publishing credentials.
+
+For consumers, pin a release by immutable digest rather than a mutable branch tag, then
+promote the same digest across environments. Confirm the repository/package visibility
+and grant the runtime only pull access. Critical unfixed vulnerabilities fail
+publishing unless an explicitly reviewed, time-bounded allowlist documents the reason.
+
+## Generic continuous delivery extension
+
+Publishing an image is the built-in handoff; deploying it is intentionally outside
+scope. Add a separate least-privilege environment workflow or external deployment
+system that:
+
+1. selects an approved GHCR digest;
+2. obtains environment secrets through the platform secret manager;
+3. runs a pre-deployment database backup and reviewed Liquibase strategy;
+4. deploys through SSH, a webhook, Kubernetes, or a platform-specific API;
+5. waits for readiness and runs authentication plus public-announcement smoke checks;
+6. rolls back application traffic on failure while respecting database compatibility;
+7. records approver, digest, migration version, and outcome.
+
+Use protected environments and short-lived workload identity where available. Do not
+put server credentials in pull-request workflows or repository variables visible to
+untrusted code.
+
+## Environment-dependent verification
+
+Repository contract checks:
+
+```bash
+./mvnw clean verify
+git grep -nE 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|password:[[:space:]]+[^$<{]' -- ':!docs/**' ':!.env.example' || true
+```
+
+Runtime checks require their dependencies:
+
+```bash
+docker compose config
+docker compose up --build --wait
+curl --fail http://localhost:8080/actuator/health/readiness
+curl --fail http://localhost:8080/v3/api-docs >/dev/null
+```
+
+Docker/Compose/Testcontainers results are environment-dependent. Report skipped checks
+as such; do not describe them as passed based only on static configuration.

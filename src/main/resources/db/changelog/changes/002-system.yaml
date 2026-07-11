@@ -1,0 +1,51 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-system
+      author: starter
+      changes:
+        - createTable:
+            tableName: system_settings
+            columns:
+              - column: { name: id, type: varchar(36), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: setting_key, type: varchar(160), constraints: { nullable: false, unique: true, uniqueConstraintName: uk_system_settings_key } }
+              - column: { name: value_type, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: value_json, type: text, constraints: { nullable: false } }
+              - column: { name: version, type: bigint, defaultValueNumeric: 0, constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: updated_at, type: timestamp with time zone, constraints: { nullable: false } }
+        - createTable:
+            tableName: ip_access_rules
+            columns:
+              - column: { name: id, type: varchar(36), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: rule_type, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: network, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: scope, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: expires_at, type: timestamp with time zone }
+              - column: { name: reason, type: varchar(500) }
+              - column: { name: version, type: bigint, defaultValueNumeric: 0, constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: updated_at, type: timestamp with time zone, constraints: { nullable: false } }
+        - createIndex:
+            tableName: ip_access_rules
+            indexName: idx_ip_access_rules_lookup
+            columns:
+              - column: { name: rule_type }
+              - column: { name: scope }
+              - column: { name: network }
+              - column: { name: expires_at }
+        - createTable:
+            tableName: audit_events
+            columns:
+              - column: { name: id, type: varchar(36), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: actor_id, type: varchar(36) }
+              - column: { name: action, type: varchar(160), constraints: { nullable: false } }
+              - column: { name: target_type, type: varchar(100) }
+              - column: { name: target_id, type: varchar(100) }
+              - column: { name: result, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: occurred_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: trace_id, type: varchar(100) }
+              - column: { name: metadata_json, type: text }
+        - createIndex:
+            tableName: audit_events
+            indexName: idx_audit_events_occurred_at
+            columns: [ { column: { name: occurred_at, descending: true } } ]

@@ -1,0 +1,102 @@
+name: Container image
+
+on:
+  push:
+    branches: ["main"]
+    tags: ["v*"]
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-scan:
+    permissions:
+      contents: read
+      security-events: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+
+      - name: Build image artifact once
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=docker,dest=/tmp/image.tar
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan exact image artifact for unfixed critical vulnerabilities
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          input: /tmp/image.tar
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL
+          ignore-unfixed: false
+          exit-code: "1"
+          # Any future .trivyignore entry must include a reviewed rationale and expiry.
+
+      - name: Upload scan results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Preserve approved image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: approved-image-${{ github.sha }}
+          path: /tmp/image.tar
+          retention-days: 1
+          if-no-files-found: error
+
+  publish:
+    needs: build-and-scan
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Retrieve approved image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: approved-image-${{ github.sha }}
+          path: /tmp
+
+      - name: Load exact approved image artifact
+        run: docker load --input /tmp/image.tar
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish approved tags without rebuilding
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r tag; do
+            case "$tag" in
+              "$REGISTRY/$IMAGE_NAME":*) docker push "$tag" ;;
+            esac
+          done < <(docker images --format '{{.Repository}}:{{.Tag}}')

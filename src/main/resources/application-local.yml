@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:sqlite:${APP_DATA_DIR:./data}/app.db
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+      minimum-idle: 1
+      data-source-properties:
+        foreign_keys: true
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
