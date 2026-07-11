@@ -1,4 +1,4 @@
-package com.yumg.starter.shared.web;
+package com.yumg.starter.common.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

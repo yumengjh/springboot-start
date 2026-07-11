@@ -1,4 +1,4 @@
-package com.yumg.starter.shared.api;
+package com.yumg.starter.common.api;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,7 +31,7 @@ public final class SecurityApiErrorHandler implements AuthenticationEntryPoint, 
         response.setStatus(code.status().value());
         response.setContentType("application/json");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.setHeader(com.yumg.starter.shared.web.TraceIdFilter.TRACE_ID_HEADER, error.traceId());
+        response.setHeader(com.yumg.starter.common.web.TraceIdFilter.TRACE_ID_HEADER, error.traceId());
         response.getWriter().write("{\"code\":\"%s\",\"message\":\"%s\",\"traceId\":\"%s\",\"violations\":[],\"timestamp\":\"%s\"}"
             .formatted(error.code(), error.message(), error.traceId(), error.timestamp()));
     }

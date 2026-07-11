@@ -1,4 +1,4 @@
-package com.yumg.starter.shared.api;
+package com.yumg.starter.common.api;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.OptimisticLockException;

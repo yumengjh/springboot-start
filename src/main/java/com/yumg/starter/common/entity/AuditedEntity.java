@@ -1,4 +1,4 @@
-package com.yumg.starter.shared.persistence;
+package com.yumg.starter.common.persistence;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;

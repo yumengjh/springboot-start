@@ -28,22 +28,21 @@ class ArchitectureRulesTest {
     }
 
     @Test
-    void sharedContainsOnlyCrossCuttingPackages() {
-        ArchRule packageRule = classes().that().resideInAPackage("com.yumg.starter.shared..")
+    void commonContainsOnlyCrossCuttingPackages() {
+        ArchRule packageRule = classes().that().resideInAPackage("com.yumg.starter.common..")
                 .should().resideInAnyPackage(
-                        "com.yumg.starter.shared.api..",
-                        "com.yumg.starter.shared.error..",
-                        "com.yumg.starter.shared.infrastructure..",
-                        "com.yumg.starter.shared.pagination..",
-                        "com.yumg.starter.shared.test..",
-                        "com.yumg.starter.shared.time..",
-                        "com.yumg.starter.shared.validation..",
-                        "com.yumg.starter.shared.web..");
-        ArchRule dependencyRule = noClasses().that().resideInAPackage("com.yumg.starter.shared..")
+                        "com.yumg.starter.common.api..",
+                        "com.yumg.starter.common.entity..",
+                        "com.yumg.starter.common.error..",
+                        "com.yumg.starter.common.infrastructure..",
+                        "com.yumg.starter.common.pagination..",
+                        "com.yumg.starter.common.test..",
+                        "com.yumg.starter.common.time..",
+                        "com.yumg.starter.common.validation..",
+                        "com.yumg.starter.common.web..");
+        ArchRule dependencyRule = noClasses().that().resideInAPackage("com.yumg.starter.common..")
                 .should().dependOnClassesThat().resideInAnyPackage(
-                        "com.yumg.starter.identity..",
-                        "com.yumg.starter.system..",
-                        "com.yumg.starter.example..");
+                        "com.yumg.starter.modules..");
 
         packageRule.allowEmptyShould(true).check(productionClasses);
         dependencyRule.allowEmptyShould(true).check(productionClasses);

@@ -1,6 +1,6 @@
-package com.yumg.starter.shared.api;
+package com.yumg.starter.common.api;
 
-import com.yumg.starter.shared.web.TraceIdFilter;
+import com.yumg.starter.common.web.TraceIdFilter;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;

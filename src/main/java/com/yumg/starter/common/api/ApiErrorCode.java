@@ -1,4 +1,4 @@
-package com.yumg.starter.shared.api;
+package com.yumg.starter.common.api;
 
 import org.springframework.http.HttpStatus;
 

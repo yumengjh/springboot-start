@@ -1,4 +1,4 @@
-package com.yumg.starter.shared.api;
+package com.yumg.starter.common.api;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -27,7 +27,7 @@ class ApiExceptionHandlerTest {
 
     private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new TestController())
         .setControllerAdvice(new ApiExceptionHandler())
-        .addFilters(new com.yumg.starter.shared.web.TraceIdFilter())
+        .addFilters(new com.yumg.starter.common.web.TraceIdFilter())
         .build();
 
     @Test

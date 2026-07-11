@@ -155,6 +155,7 @@ See [RBAC](docs/api/rbac.md) for a worked permission-extension checklist.
 
 ## API and operations guides
 
+- [Project goal, current status, and roadmap](docs/PROJECT_STATUS.md)
 - [Authentication and sessions](docs/api/authentication.md)
 - [Roles and permissions](docs/api/rbac.md)
 - [Runtime settings](docs/operations/runtime-settings.md)

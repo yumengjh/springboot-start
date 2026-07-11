@@ -1,4 +1,4 @@
-package com.yumg.starter.shared.api;
+package com.yumg.starter.common.api;
 
 public class ApiException extends RuntimeException {
     private final ApiErrorCode error;
