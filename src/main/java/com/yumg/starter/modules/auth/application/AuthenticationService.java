@@ -29,7 +29,7 @@ public class AuthenticationService implements AuthenticationUseCase {
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = ApiException.class)
     public TokenResponse login(LoginRequest request) {
         String username = request.username().toLowerCase(Locale.ROOT);
         User user = users.findByUsername(username).orElse(null);
