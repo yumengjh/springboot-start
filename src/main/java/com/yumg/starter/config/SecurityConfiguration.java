@@ -18,7 +18,8 @@ public class SecurityConfiguration {
                 .oauth2ResourceServer(resourceServer -> resourceServer.jwt(jwt -> {}))
                 .addFilterBefore(traceIdFilter, SecurityContextHolderFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/actuator/health/**",
+                        .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh",
+                                "/api/v1/auth/logout", "/actuator/health/**",
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                         .permitAll()
                         .anyRequest().authenticated())

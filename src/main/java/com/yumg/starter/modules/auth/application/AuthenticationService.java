@@ -35,4 +35,22 @@ public class AuthenticationService implements AuthenticationUseCase {
         }
         return tokens.issue(user);
     }
+
+    @Override
+    @Transactional
+    public TokenResponse refresh(String refreshToken) {
+        String tokenHash = TokenService.sha256(refreshToken);
+        var session = tokens.findSession(tokenHash).orElseThrow(ApiException::unauthorized);
+        User user = users.findById(session.getUserId()).orElseThrow(ApiException::unauthorized);
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw ApiException.unauthorized();
+        }
+        return tokens.rotate(user, refreshToken);
+    }
+
+    @Override
+    @Transactional
+    public void logout(String refreshToken) {
+        tokens.revoke(refreshToken);
+    }
 }

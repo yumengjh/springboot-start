@@ -24,8 +24,23 @@ class AuthControllerTest {
     @BeforeEach
     void setUp() {
         registrationService = request -> new UserResponse("user-1", "alice", "Alice", "ACTIVE");
-        authenticationService = request -> new com.yumg.starter.modules.auth.api.dto.TokenResponse(
-                "access", "refresh", "Bearer", 900);
+        authenticationService = new AuthenticationUseCase() {
+            @Override
+            public com.yumg.starter.modules.auth.api.dto.TokenResponse login(
+                    com.yumg.starter.modules.auth.api.dto.LoginRequest request) {
+                return new com.yumg.starter.modules.auth.api.dto.TokenResponse(
+                        "access", "refresh", "Bearer", 900);
+            }
+
+            @Override
+            public com.yumg.starter.modules.auth.api.dto.TokenResponse refresh(String refreshToken) {
+                return login(null);
+            }
+
+            @Override
+            public void logout(String refreshToken) {
+            }
+        };
         mvc = MockMvcBuilders.standaloneSetup(new AuthController(registrationService, authenticationService))
                 .setMessageConverters(new MappingJackson2HttpMessageConverter())
                 .setControllerAdvice(new ApiExceptionHandler())

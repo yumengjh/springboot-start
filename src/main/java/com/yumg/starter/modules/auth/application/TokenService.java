@@ -2,6 +2,7 @@ package com.yumg.starter.modules.auth.application;
 
 import com.yumg.starter.entities.RefreshSession;
 import com.yumg.starter.entities.User;
+import com.yumg.starter.common.api.ApiException;
 import com.yumg.starter.modules.auth.api.dto.TokenResponse;
 import com.yumg.starter.modules.auth.infrastructure.RefreshSessionRepository;
 import java.nio.charset.StandardCharsets;
@@ -12,6 +13,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.UUID;
+import java.util.Optional;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
@@ -33,10 +35,40 @@ public class TokenService {
 
     @Transactional
     public TokenResponse issue(User user) {
+        return issue(user, UUID.randomUUID().toString());
+    }
+
+    @Transactional
+    public TokenResponse rotate(User user, String rawRefreshToken) {
+        Instant now = Instant.now();
+        RefreshSession session = refreshSessions.findByTokenHash(sha256(rawRefreshToken))
+                .orElseThrow(ApiException::unauthorized);
+        if (!session.getUserId().equals(user.getId()) || session.isExpired(now) || session.isRevoked()) {
+            throw ApiException.unauthorized();
+        }
+        if (session.isConsumed()) {
+            refreshSessions.revokeFamily(session.getFamilyId(), now);
+            throw ApiException.unauthorized();
+        }
+        session.consume(now);
+        return issue(user, session.getFamilyId());
+    }
+
+    @Transactional
+    public void revoke(String rawRefreshToken) {
+        refreshSessions.findByTokenHash(sha256(rawRefreshToken)).ifPresent(session ->
+                session.revoke(Instant.now()));
+    }
+
+    public Optional<RefreshSession> findSession(String tokenHash) {
+        return refreshSessions.findByTokenHash(tokenHash);
+    }
+
+    private TokenResponse issue(User user, String familyId) {
         Instant now = Instant.now();
         Instant accessExpiry = now.plus(15, ChronoUnit.MINUTES);
         String rawRefreshToken = newRefreshToken();
-        refreshSessions.save(new RefreshSession(user.getId(), UUID.randomUUID().toString(),
+        refreshSessions.save(new RefreshSession(user.getId(), familyId,
                 sha256(rawRefreshToken), now, now.plus(30, ChronoUnit.DAYS)));
         JwtClaimsSet claims = JwtClaimsSet.builder().issuer("springboot-start").subject(user.getId())
                 .issuedAt(now).expiresAt(accessExpiry).id(UUID.randomUUID().toString())

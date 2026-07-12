@@ -3,6 +3,7 @@ package com.yumg.starter.modules.auth.api;
 import com.yumg.starter.modules.auth.api.dto.RegisterRequest;
 import com.yumg.starter.modules.auth.api.dto.LoginRequest;
 import com.yumg.starter.modules.auth.api.dto.TokenResponse;
+import com.yumg.starter.modules.auth.api.dto.RefreshRequest;
 import com.yumg.starter.modules.auth.api.dto.UserResponse;
 import com.yumg.starter.modules.auth.application.AuthenticationUseCase;
 import com.yumg.starter.modules.auth.application.RegistrationUseCase;
@@ -35,5 +36,16 @@ public class AuthController {
     @PostMapping("/login")
     public TokenResponse login(@Valid @RequestBody LoginRequest request) {
         return authenticationService.login(request);
+    }
+
+    @PostMapping("/refresh")
+    public TokenResponse refresh(@Valid @RequestBody RefreshRequest request) {
+        return authenticationService.refresh(request.refreshToken());
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshRequest request) {
+        authenticationService.logout(request.refreshToken());
+        return ResponseEntity.noContent().build();
     }
 }

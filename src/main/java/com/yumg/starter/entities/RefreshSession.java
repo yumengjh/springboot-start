@@ -23,6 +23,12 @@ public class RefreshSession extends BaseUuidEntity {
     @Column(name = "expires_at", nullable = false)
     @Convert(converter = InstantStringConverter.class)
     private Instant expiresAt;
+    @Column(name = "consumed_at")
+    @Convert(converter = InstantStringConverter.class)
+    private Instant consumedAt;
+    @Column(name = "revoked_at")
+    @Convert(converter = InstantStringConverter.class)
+    private Instant revokedAt;
 
     protected RefreshSession() {}
 
@@ -34,4 +40,12 @@ public class RefreshSession extends BaseUuidEntity {
         this.issuedAt = issuedAt;
         this.expiresAt = expiresAt;
     }
+
+    public String getUserId() { return userId; }
+    public String getFamilyId() { return familyId; }
+    public boolean isExpired(Instant now) { return !expiresAt.isAfter(now); }
+    public boolean isConsumed() { return consumedAt != null; }
+    public boolean isRevoked() { return revokedAt != null; }
+    public void consume(Instant now) { consumedAt = now; }
+    public void revoke(Instant now) { revokedAt = now; }
 }
