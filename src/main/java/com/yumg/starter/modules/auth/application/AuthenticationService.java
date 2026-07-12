@@ -33,11 +33,13 @@ public class AuthenticationService implements AuthenticationUseCase {
     public TokenResponse login(LoginRequest request) {
         String username = request.username().toLowerCase(Locale.ROOT);
         User user = users.findByUsername(username).orElse(null);
-        if (user == null) { bruteForce.recordFailure(username); throw ApiException.unauthorized(); }
+        if (user == null) { bruteForce.recordFailure(username); throw ApiException.invalidCredentials(); }
         user.unlockIfExpired(Instant.now());
-        if (user.getStatus() != UserStatus.ACTIVE || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+        if (user.getStatus() == UserStatus.LOCKED) throw ApiException.accountLocked();
+        if (user.getStatus() == UserStatus.DISABLED) throw ApiException.accountDisabled();
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             if (bruteForce.recordFailure(username) && !user.isSuperAdmin()) { user.lock(bruteForce.lockUntil()); tokens.revokeAllForUser(user.getId()); }
-            throw ApiException.unauthorized();
+            throw ApiException.invalidCredentials();
         }
         bruteForce.clear(username);
         return tokens.issue(user);

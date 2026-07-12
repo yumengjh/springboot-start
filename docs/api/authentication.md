@@ -36,6 +36,15 @@ JWT 包含用户 ID、用户名、令牌版本和有效权限列表。Refresh To
 
 登出会撤销传入的 Refresh Token。修改密码会撤销该用户所有 Refresh Token。全设备登出、管理员强制下线和账户禁用联动仍待实现。
 
+## 错误信息
+
+- 用户名不存在或密码错误：`401 INVALID_CREDENTIALS`。两者共用错误，避免泄露账号是否存在。
+- 账户处于锁定状态：`423 ACCOUNT_LOCKED`。
+- 账户被管理员禁用：`403 ACCOUNT_DISABLED`。
+- 缺少、失效或被撤销的 Token：`401 AUTHENTICATION_REQUIRED`。
+
+其他未预期异常才返回通用 `INTERNAL_ERROR`，响应同时包含 Trace ID 供排查。
+
 ## 密钥边界
 
 当前实现会在每次应用启动时生成 RSA 密钥对，因此重启后原 Access Token 失效。生产环境外部密钥（环境变量或挂载文件）尚未接入，当前方式仅适用于本地开发与模板验证，不能直接用于生产部署。

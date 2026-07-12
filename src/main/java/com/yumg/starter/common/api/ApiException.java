@@ -24,5 +24,9 @@ public class ApiException extends RuntimeException {
         return new ApiException(ApiErrorCode.AUTHENTICATION_REQUIRED);
     }
 
+    public static ApiException invalidCredentials() { return new ApiException(ApiErrorCode.INVALID_CREDENTIALS); }
+    public static ApiException accountLocked() { return new ApiException(ApiErrorCode.ACCOUNT_LOCKED); }
+    public static ApiException accountDisabled() { return new ApiException(ApiErrorCode.ACCOUNT_DISABLED); }
+
     ApiErrorCode error() { return error; }
 }
