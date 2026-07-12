@@ -5,8 +5,13 @@ import com.yumg.starter.common.web.TraceIdFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import java.util.List;
 
 @Configuration(proxyBeanMethods = false)
 public class SecurityConfiguration {
@@ -15,6 +20,7 @@ public class SecurityConfiguration {
                                             TraceIdFilter traceIdFilter) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
                 .oauth2ResourceServer(resourceServer -> resourceServer.jwt(jwt -> {}))
                 .addFilterBefore(traceIdFilter, SecurityContextHolderFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
@@ -27,5 +33,16 @@ public class SecurityConfiguration {
                         .authenticationEntryPoint(errors)
                         .accessDeniedHandler(errors))
                 .build();
+    }
+
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-Trace-Id"));
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", configuration);
+        return source;
     }
 }
