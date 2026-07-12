@@ -1,6 +1,7 @@
 package com.yumg.starter.common.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -10,9 +11,11 @@ import java.time.Instant;
 public abstract class AuditedEntity extends BaseUuidEntity {
 
     @Column(name = "created_at", nullable = false, updatable = false)
+    @Convert(converter = InstantStringConverter.class)
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
+    @Convert(converter = InstantStringConverter.class)
     private Instant updatedAt;
 
     @PrePersist
