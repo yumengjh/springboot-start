@@ -60,6 +60,11 @@ public class TokenService {
                 session.revoke(Instant.now()));
     }
 
+    @Transactional
+    public void revokeAllForUser(String userId) {
+        refreshSessions.revokeAllForUser(userId, Instant.now());
+    }
+
     public Optional<RefreshSession> findSession(String tokenHash) {
         return refreshSessions.findByTokenHash(tokenHash);
     }

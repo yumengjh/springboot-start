@@ -56,4 +56,13 @@ public class User extends AuditedEntity {
     public long getTokenVersion() {
         return tokenVersion;
     }
+
+    public void changeDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public void changePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+        this.tokenVersion++;
+    }
 }
