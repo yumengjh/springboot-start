@@ -82,6 +82,7 @@ public class User extends AuditedEntity {
     public void grant(Role role) { roles.add(role); }
     public void revoke(Role role) { roles.remove(role); }
     public Set<Role> getRoles() { return Set.copyOf(roles); }
+    public boolean isSuperAdmin() { return roles.stream().anyMatch(role -> "SUPER_ADMIN".equals(role.getCode())); }
     public void lock(Instant until) { status = UserStatus.LOCKED; lockedUntil = until; tokenVersion++; }
     public void unlock() { if (status == UserStatus.LOCKED) { status = UserStatus.ACTIVE; lockedUntil = null; tokenVersion++; } }
     public void disable() { status = UserStatus.DISABLED; tokenVersion++; }

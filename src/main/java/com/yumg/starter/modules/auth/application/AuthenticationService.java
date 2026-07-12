@@ -36,7 +36,7 @@ public class AuthenticationService implements AuthenticationUseCase {
         if (user == null) { bruteForce.recordFailure(username); throw ApiException.unauthorized(); }
         user.unlockIfExpired(Instant.now());
         if (user.getStatus() != UserStatus.ACTIVE || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            if (bruteForce.recordFailure(username)) { user.lock(bruteForce.lockUntil()); tokens.revokeAllForUser(user.getId()); }
+            if (bruteForce.recordFailure(username) && !user.isSuperAdmin()) { user.lock(bruteForce.lockUntil()); tokens.revokeAllForUser(user.getId()); }
             throw ApiException.unauthorized();
         }
         bruteForce.clear(username);
