@@ -64,7 +64,8 @@ class SecurityApiErrorHandlerTest {
     @Import(SharedSecurityErrorConfiguration.class)
     static class Config {
         @Bean TraceIdFilter traceIdFilter() { return new TraceIdFilter(); }
-        @Bean SecurityApiErrorHandler securityApiErrorHandler() { return new SecurityApiErrorHandler(); }
+        @Bean ApiErrorWriter apiErrorWriter() { return new ApiErrorWriter(); }
+        @Bean SecurityApiErrorHandler securityApiErrorHandler(ApiErrorWriter errors) { return new SecurityApiErrorHandler(errors); }
         @Bean TestController testController() { return new TestController(); }
     }
 

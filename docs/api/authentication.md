@@ -11,14 +11,18 @@
 
 ## Token
 
-登录和刷新成功后都会返回：
+登录和刷新成功后，业务数据位于统一响应的 `data` 内：
 
 ```json
 {
-  "accessToken": "RSA 签名的 JWT",
-  "refreshToken": "一次性不透明令牌",
-  "tokenType": "Bearer",
-  "expiresIn": 900
+  "data": {
+    "accessToken": "RSA 签名的 JWT",
+    "refreshToken": "一次性不透明令牌",
+    "tokenType": "Bearer",
+    "expiresIn": 900
+  },
+  "traceId": "...",
+  "timestamp": "..."
 }
 ```
 
@@ -44,6 +48,8 @@ JWT 包含用户 ID、用户名、令牌版本和有效权限列表。Refresh To
 - 缺少、失效或被撤销的 Token：`401 AUTHENTICATION_REQUIRED`。
 
 其他未预期异常才返回通用 `INTERNAL_ERROR`，响应同时包含 Trace ID 供排查。
+
+`POST /register` 返回 `201 Created` 与新用户数据，但不会返回 `Location`：当前模板没有公开的 `GET /api/v1/users/{id}` 资源路由，因此不伪造一个不存在的地址。`POST /logout` 仍返回 `204 No Content`。
 
 ## 密钥边界
 

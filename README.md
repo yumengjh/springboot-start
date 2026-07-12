@@ -72,6 +72,20 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=请替换为强密码
 | 健康检查 | `/actuator/health` |
 | OpenAPI | `/v3/api-docs`、`/swagger-ui/index.html` |
 
+## API 响应约定
+
+`/api/v1/**` 的成功响应（`204 No Content` 除外）统一为：
+
+```json
+{
+  "data": {},
+  "traceId": "请求追踪 ID",
+  "timestamp": "2026-07-12T00:00:00Z"
+}
+```
+
+错误响应使用 `code`、`message`、`traceId`、`violations`、`timestamp`。认证、授权、限流和 Controller 内异常共用这一错误结构；客户端排查时应携带 `traceId`。
+
 ## 构建与测试
 
 ```bash

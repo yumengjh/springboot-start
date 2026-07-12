@@ -8,7 +8,7 @@ import com.yumg.starter.modules.auth.api.dto.UserResponse;
 import com.yumg.starter.modules.auth.application.AuthenticationUseCase;
 import com.yumg.starter.modules.auth.application.RegistrationUseCase;
 import jakarta.validation.Valid;
-import java.net.URI;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,7 +30,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
         UserResponse response = registrationService.register(request);
-        return ResponseEntity.created(URI.create("/api/v1/users/" + response.id())).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")

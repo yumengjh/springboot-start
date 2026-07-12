@@ -32,6 +32,8 @@ users --< user_roles >-- roles --< role_permissions >-- permissions
 - `PUT /roles/{roleCode}/permissions/{permissionCode}`：给角色授予权限，需 `system:role:write`。
 - `DELETE /roles/{roleCode}/permissions/{permissionCode}`：移除角色权限，需 `system:role:write`。
 
+`GET /roles` 的角色列表位于统一响应的 `data` 中；上述成功但无实体的 PUT/DELETE 操作返回 `204 No Content`。
+
 角色与权限创建接口尚未实现。
 
 ## 管理员用户管理

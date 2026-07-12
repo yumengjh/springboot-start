@@ -2,9 +2,11 @@ package com.yumg.starter.common.api;
 
 import org.springframework.http.HttpStatus;
 
-enum ApiErrorCode {
+public enum ApiErrorCode {
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "Request validation failed"),
     MALFORMED_JSON(HttpStatus.BAD_REQUEST, "Malformed JSON request"),
+    INVALID_PARAMETER(HttpStatus.BAD_REQUEST, "Request parameter is invalid"),
+    MISSING_REQUIRED_PARAMETER(HttpStatus.BAD_REQUEST, "A required request parameter is missing"),
     AUTHENTICATION_REQUIRED(HttpStatus.UNAUTHORIZED, "Authentication is required"),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Username or password is incorrect"),
     ACCOUNT_LOCKED(HttpStatus.LOCKED, "Account is temporarily locked"),
@@ -15,6 +17,7 @@ enum ApiErrorCode {
     CONFLICT(HttpStatus.CONFLICT, "The request conflicts with existing data"),
     RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "Too many requests"),
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported media type"),
+    METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "HTTP method is not allowed for this resource"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
 
     private final HttpStatus status;

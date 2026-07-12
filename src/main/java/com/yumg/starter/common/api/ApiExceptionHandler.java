@@ -10,14 +10,20 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<ApiError> validation(MethodArgumentNotValidException exception) {
         List<FieldViolation> violations = exception.getBindingResult().getFieldErrors().stream()
@@ -86,8 +92,27 @@ public class ApiExceptionHandler {
         return ApiErrorFactory.response(ApiErrorCode.UNSUPPORTED_MEDIA_TYPE, List.of());
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ApiError> invalidParameter() {
+        return ApiErrorFactory.response(ApiErrorCode.INVALID_PARAMETER, List.of());
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    ResponseEntity<ApiError> missingParameter() {
+        return ApiErrorFactory.response(ApiErrorCode.MISSING_REQUIRED_PARAMETER, List.of());
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<ApiError> methodNotAllowed() {
+        return ApiErrorFactory.response(ApiErrorCode.METHOD_NOT_ALLOWED, List.of());
+    }
+
     @ExceptionHandler(Exception.class)
-    ResponseEntity<ApiError> unexpected(Exception ignored) { return unexpected(); }
+    ResponseEntity<ApiError> unexpected(Exception exception) {
+        log.error("Unhandled request failure, traceId={}",
+                org.slf4j.MDC.get(com.yumg.starter.common.web.TraceIdFilter.TRACE_ID_MDC_KEY), exception);
+        return unexpected();
+    }
     ResponseEntity<ApiError> unexpected() {
         return ApiErrorFactory.response(ApiErrorCode.INTERNAL_ERROR, List.of());
     }

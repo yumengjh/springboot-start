@@ -107,7 +107,8 @@
         try { data = text ? JSON.parse(text) : null; } catch { /* 非 JSON 响应原样展示 */ }
         if (!quiet) showResponse(method, path, response.status, data);
         if (!response.ok) showNotice(`请求失败（HTTP ${response.status}）：${data?.message || data?.code || text || '未知错误'}`, 'error');
-        return { ok: response.ok, status: response.status, data };
+        const resultData = response.ok && data && Object.hasOwn(data, 'data') ? data.data : data;
+        return { ok: response.ok, status: response.status, data: resultData, envelope: data };
       } catch (error) { showNotice(`无法连接服务：${error.message}`, 'error'); showResponse(method, path, 'NETWORK_ERROR', error.message); return { ok: false }; }
     }
 
