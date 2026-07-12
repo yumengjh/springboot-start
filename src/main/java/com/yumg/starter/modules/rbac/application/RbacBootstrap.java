@@ -7,10 +7,13 @@ import com.yumg.starter.modules.rbac.infrastructure.RoleRepository;
 import java.util.List;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class RbacBootstrap implements ApplicationRunner {
     private static final List<String> CODES = List.of("system:user:read", "system:user:write", "system:role:read", "system:role:write", "system:role:assign", "system:config:read", "system:config:write", "system:audit:read", "example:announcement:read", "example:announcement:write", "example:announcement:delete");
     private final PermissionRepository permissions; private final RoleRepository roles;

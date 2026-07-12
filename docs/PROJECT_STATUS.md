@@ -50,6 +50,9 @@ Until domain entities exist, `common/entity` contains only reusable JPA base typ
 - Local SQLite HTTP smoke tests verified registration, login, refresh-token rotation,
   logout revocation, and brute-force account locking after the configured failure
   threshold.
+- A clean-database regression run verified ordered bootstrap-super-admin creation,
+  super-admin JWT permissions, RBAC administration, user status updates, and runtime
+  configuration updates.
 
 ## CI Status
 
