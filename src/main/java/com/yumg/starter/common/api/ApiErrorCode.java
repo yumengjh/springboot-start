@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 public enum ApiErrorCode {
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "Request validation failed"),
     MALFORMED_JSON(HttpStatus.BAD_REQUEST, "Malformed JSON request"),
+    UNKNOWN_FIELD(HttpStatus.BAD_REQUEST, "Request contains an unknown field"),
     INVALID_PARAMETER(HttpStatus.BAD_REQUEST, "Request parameter is invalid"),
     MISSING_REQUIRED_PARAMETER(HttpStatus.BAD_REQUEST, "A required request parameter is missing"),
     AUTHENTICATION_REQUIRED(HttpStatus.UNAUTHORIZED, "Authentication is required"),
