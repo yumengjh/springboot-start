@@ -35,6 +35,9 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=请替换为强密码
 
 若用户名不存在，服务会创建该用户并授予 `SUPER_ADMIN`。该初始化是幂等的。
 
+本地管理员已被锁定或忘记密码时，可临时设置
+`APP_BOOTSTRAP_ADMIN_RESET_PASSWORD=true` 后重启服务；它会重置 `.env` 中指定账号的密码并解除锁定。恢复成功后应立即改回 `false`。
+
 ## 已实现功能
 
 - 注册、登录、RSA JWT、Refresh Token 轮换与当前设备登出

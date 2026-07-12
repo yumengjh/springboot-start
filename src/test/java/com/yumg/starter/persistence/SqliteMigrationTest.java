@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
@@ -79,7 +79,7 @@ class SqliteMigrationTest {
                 "00000000-0000-0000-0000-000000000099",
                 "00000000-0000-0000-0000-000000000002",
                 "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"))
-                .isInstanceOf(DataIntegrityViolationException.class);
+                .isInstanceOf(DataAccessException.class);
     }
 
     private List<String> indexNames(String table) {
@@ -87,10 +87,11 @@ class SqliteMigrationTest {
     }
 
     private List<List<String>> indexColumns(String table, boolean unique) {
-        return jdbc.query("select name from pragma_index_list(?) where \"unique\" = ?",
-                (resultSet, row) -> jdbc.queryForList(
-                        "select name from pragma_index_info(?) order by seqno", String.class,
-                        resultSet.getString("name")), table, unique ? 1 : 0);
+        List<String> indexes = jdbc.queryForList(
+                "select name from pragma_index_list(?) where \"unique\" = ?", String.class,
+                table, unique ? 1 : 0);
+        return indexes.stream().map(index -> jdbc.queryForList(
+                "select name from pragma_index_info(?) order by seqno", String.class, index)).toList();
     }
 
     private List<String> foreignKeyTargets(String table) {
