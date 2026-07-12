@@ -6,7 +6,7 @@ import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import tools.jackson.databind.exc.UnrecognizedPropertyException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -44,8 +44,7 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ApiError> malformedJson(HttpMessageNotReadableException exception) {
-        if (exception.getCause() instanceof UnrecognizedPropertyException
-                || exception.getMessage().contains("Unrecognized field")) {
+        if (hasUnknownField(exception)) {
             return ApiErrorFactory.response(ApiErrorCode.UNKNOWN_FIELD, List.of());
         }
         return ApiErrorFactory.response(ApiErrorCode.MALFORMED_JSON, List.of());
@@ -129,5 +128,12 @@ public class ApiExceptionHandler {
 
     private String safeMessage(String message) {
         return message == null || message.isBlank() ? "Invalid value" : message;
+    }
+
+    private boolean hasUnknownField(Throwable throwable) {
+        for (Throwable current = throwable; current != null; current = current.getCause()) {
+            if (current instanceof UnrecognizedPropertyException) return true;
+        }
+        return false;
     }
 }
