@@ -39,7 +39,7 @@ APP_BOOTSTRAP_ADMIN_PASSWORD='请替换为强密码' \
 - 注册、登录、RSA JWT、Refresh Token 轮换与当前设备登出
 - 用户查看本人资料、修改显示名、修改密码
 - 数据库 RBAC：初始角色、权限、用户角色分配、角色权限分配
-- 运行时服务配置基础：通用 API 限流和防爆破/审计开关的持久化内存快照
+- 运行时服务配置基础：通用 API 限流、登录防爆破和审计开关的持久化内存快照
 - 统一错误响应、Trace ID、SQLite/PostgreSQL Liquibase 迁移
 - Docker、Compose、GitHub Actions 基础文件
 

@@ -86,4 +86,8 @@ public class User extends AuditedEntity {
     public void unlock() { if (status == UserStatus.LOCKED) { status = UserStatus.ACTIVE; lockedUntil = null; tokenVersion++; } }
     public void disable() { status = UserStatus.DISABLED; tokenVersion++; }
     public void enable() { if (status == UserStatus.DISABLED) { status = UserStatus.ACTIVE; tokenVersion++; } }
+    public boolean unlockIfExpired(Instant now) {
+        if (status == UserStatus.LOCKED && lockedUntil != null && !lockedUntil.isAfter(now)) { unlock(); return true; }
+        return false;
+    }
 }

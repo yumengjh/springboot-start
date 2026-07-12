@@ -6,6 +6,8 @@ import com.yumg.starter.entities.UserStatus;
 import com.yumg.starter.modules.auth.api.dto.LoginRequest;
 import com.yumg.starter.modules.auth.api.dto.TokenResponse;
 import com.yumg.starter.modules.auth.infrastructure.UserRepository;
+import com.yumg.starter.modules.security.application.BruteForceService;
+import java.time.Instant;
 import java.util.Locale;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,23 +18,28 @@ public class AuthenticationService implements AuthenticationUseCase {
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokens;
+    private final BruteForceService bruteForce;
 
     public AuthenticationService(UserRepository users, PasswordEncoder passwordEncoder,
-                                 TokenService tokens) {
+                                 TokenService tokens, BruteForceService bruteForce) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.tokens = tokens;
+        this.bruteForce = bruteForce;
     }
 
     @Override
     @Transactional
     public TokenResponse login(LoginRequest request) {
-        User user = users.findByUsername(request.username().toLowerCase(Locale.ROOT))
-                .orElseThrow(ApiException::unauthorized);
-        if (user.getStatus() != UserStatus.ACTIVE || !passwordEncoder.matches(request.password(),
-                user.getPasswordHash())) {
+        String username = request.username().toLowerCase(Locale.ROOT);
+        User user = users.findByUsername(username).orElse(null);
+        if (user == null) { bruteForce.recordFailure(username); throw ApiException.unauthorized(); }
+        user.unlockIfExpired(Instant.now());
+        if (user.getStatus() != UserStatus.ACTIVE || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            if (bruteForce.recordFailure(username)) { user.lock(bruteForce.lockUntil()); tokens.revokeAllForUser(user.getId()); }
             throw ApiException.unauthorized();
         }
+        bruteForce.clear(username);
         return tokens.issue(user);
     }
 
