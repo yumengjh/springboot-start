@@ -25,7 +25,7 @@
     .permission-group { border-top: 1px solid #e7edf4; padding: 8px 0; } .permission-group:first-child { border-top: 0; } .permission-group h3 { color: #334155; } .check { display: flex; align-items: center; gap: 8px; padding: 4px 0; color: #475569; cursor: pointer; } .check input { width: auto; min-height: auto; }
     pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; background: #101827; color: #d1fae5; padding: 14px; border-radius: 8px; min-height: 140px; }
     .muted { color: #64748b; font-size: 12px; } .hidden { display: none; }
-    @media (max-width: 760px) { .topbar, .form-grid, .two-column { grid-template-columns: 1fr; } .count { margin-left: 0; width: 100%; } th:nth-child(3), td:nth-child(3) { display: none; } }
+    @media (max-width: 760px) { .topbar, .form-grid, .two-column { grid-template-columns: 1fr; } .count { margin-left: 0; width: 100%; } th:nth-child(4), td:nth-child(4), th:nth-child(5), td:nth-child(5) { display: none; } }
   </style>
 </head>
 <body>
@@ -48,8 +48,8 @@
   <section>
     <h2>用户管理</h2>
     <div class="toolbar"><button onclick="loadUsers()">刷新用户列表</button><span id="userCount" class="count">用户总数：未加载</span></div>
-    <p class="muted">点击用户行即可选中。当前后端可查询 ID、用户名、显示名和状态；管理员可修改状态、分配或移除角色。</p>
-    <div style="overflow:auto"><table><thead><tr><th>用户名</th><th>显示名</th><th>状态</th><th>ID</th></tr></thead><tbody id="userRows"><tr><td colspan="4" class="muted">请先登录并加载用户。</td></tr></tbody></table></div>
+    <p class="muted">点击用户行即可选中。列表会显示该用户已有角色；管理员可修改状态、分配或移除角色。</p>
+    <div style="overflow:auto"><table><thead><tr><th>用户名</th><th>显示名</th><th>角色</th><th>状态</th><th>ID</th></tr></thead><tbody id="userRows"><tr><td colspan="5" class="muted">请先登录并加载用户。</td></tr></tbody></table></div>
     <h3>选中用户操作</h3>
     <div id="selectedUser" class="selected-user">尚未选择用户。</div>
     <div class="form-grid">
@@ -117,9 +117,9 @@
     async function logout() { await api('/api/v1/auth/logout', 'POST', { refreshToken: refreshTokenValue }); accessToken = ''; refreshTokenValue = ''; users = []; roles = []; selectedUserId = ''; renderUsers(); renderRoles(); showNotice('已登出，页面内存中的 Token 已清除。'); }
 
     async function loadUsers() { const result = await api('/api/v1/admin/users'); if (!result.ok || !Array.isArray(result.data)) return; users = result.data; renderUsers(); }
-    function renderUsers() { $('userCount').textContent = `用户总数：${users.length || 0}`; $('userRows').innerHTML = users.length ? users.map(user => `<tr class="${user.id === selectedUserId ? 'selected' : ''}" onclick="selectUser('${escapeHtml(user.id)}')"><td>${escapeHtml(user.username)}</td><td>${escapeHtml(user.displayName)}</td><td><span class="badge ${escapeHtml(user.status)}">${escapeHtml(user.status)}</span></td><td class="id" title="${escapeHtml(user.id)}">${escapeHtml(user.id)}</td></tr>`).join('') : '<tr><td colspan="4" class="muted">暂无用户，或尚未加载。</td></tr>'; renderSelectedUser(); }
+    function renderUsers() { $('userCount').textContent = `用户总数：${users.length || 0}`; $('userRows').innerHTML = users.length ? users.map(user => `<tr class="${user.id === selectedUserId ? 'selected' : ''}" onclick="selectUser('${escapeHtml(user.id)}')"><td>${escapeHtml(user.username)}</td><td>${escapeHtml(user.displayName)}</td><td>${(user.roles || []).map(role => `<span class="badge">${escapeHtml(role)}</span>`).join(' ') || '<span class="muted">无角色</span>'}</td><td><span class="badge ${escapeHtml(user.status)}">${escapeHtml(user.status)}</span></td><td class="id" title="${escapeHtml(user.id)}">${escapeHtml(user.id)}</td></tr>`).join('') : '<tr><td colspan="5" class="muted">暂无用户，或尚未加载。</td></tr>'; renderSelectedUser(); }
     function selectUser(id) { selectedUserId = id; const user = users.find(item => item.id === id); if (user) $('status').value = user.status; renderUsers(); }
-    function renderSelectedUser() { const user = users.find(item => item.id === selectedUserId); $('selectedUser').innerHTML = user ? `<strong>${escapeHtml(user.username)}</strong>（${escapeHtml(user.displayName)}）<br><span class="muted">ID：${escapeHtml(user.id)}；当前状态：${escapeHtml(user.status)}</span>` : '尚未选择用户。'; }
+    function renderSelectedUser() { const user = users.find(item => item.id === selectedUserId); $('selectedUser').innerHTML = user ? `<strong>${escapeHtml(user.username)}</strong>（${escapeHtml(user.displayName)}）<br><span class="muted">ID：${escapeHtml(user.id)}；当前状态：${escapeHtml(user.status)}；已有角色：${escapeHtml((user.roles || []).join(', ') || '无')}</span>` : '尚未选择用户。'; }
     function selectedUserOrWarn() { if (selectedUserId) return true; showNotice('请先从用户列表点击选择一个用户。', 'error'); return false; }
     async function updateStatus() { if (!selectedUserOrWarn()) return; const result = await api(`/api/v1/admin/users/${encodeURIComponent(selectedUserId)}/status`, 'PATCH', { status: $('status').value }); if (result.ok) { showNotice('用户状态已更新。', 'ok'); await loadUsers(); } }
     async function assignRole() { if (!selectedUserOrWarn()) return; const role = $('userRoleSelect').value; if (!role) return; const result = await api(`/api/v1/rbac/users/${encodeURIComponent(selectedUserId)}/roles/${encodeURIComponent(role)}`, 'PUT'); if (result.ok) { showNotice(`已为选中用户分配 ${role}。`, 'ok'); await Promise.all([loadUsers(), loadRoles()]); } }
