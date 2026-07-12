@@ -7,7 +7,7 @@
 - `GET /api/v1/system/runtime-config`：读取当前配置。
 - `PUT /api/v1/system/runtime-config/{key}`：更新配置，请求体为 `{"value":"..."}`。
 
-当前接口要求已登录。RBAC 权限控制、修改审计记录和操作日志将在 security 模块中继续接入。
+读取接口需要 `system:config:read`，更新接口需要 `system:config:write`。修改审计记录和操作日志将在 security 模块中继续接入。
 
 ## 内置键
 
@@ -19,6 +19,6 @@
 - `security.brute-force.lock-seconds`
 - `security.audit.enabled`
 
-服务启动时会为缺失项写入默认值，并将配置缓存为内存快照。更新成功后会立即刷新快照；限流和防爆破策略后续直接读取该快照。
+服务启动时会为缺失项写入默认值，并将配置缓存为内存快照。更新成功后会立即刷新快照；通用 API 限流已直接读取该快照，并按 IP 与路径在单实例内计数，超过阈值返回 `429 RATE_LIMITED`。
 
 当前仅支持布尔值和有范围限制的整数值。Redis 分布式计数、IP 黑白名单、真正限流、防爆破执行和审计事件属于下一阶段。
