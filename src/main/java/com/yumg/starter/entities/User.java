@@ -6,6 +6,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -26,6 +31,9 @@ public class User extends AuditedEntity {
 
     @Column(name = "token_version", nullable = false)
     private long tokenVersion;
+    @ManyToMany
+    @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
+    private Set<Role> roles = new LinkedHashSet<>();
 
     protected User() {
     }
@@ -65,4 +73,6 @@ public class User extends AuditedEntity {
         this.passwordHash = passwordHash;
         this.tokenVersion++;
     }
+    public void grant(Role role) { roles.add(role); }
+    public Set<Role> getRoles() { return Set.copyOf(roles); }
 }

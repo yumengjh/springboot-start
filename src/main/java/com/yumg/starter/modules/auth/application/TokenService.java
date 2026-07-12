@@ -14,6 +14,7 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.UUID;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
@@ -78,6 +79,8 @@ public class TokenService {
         JwtClaimsSet claims = JwtClaimsSet.builder().issuer("springboot-start").subject(user.getId())
                 .issuedAt(now).expiresAt(accessExpiry).id(UUID.randomUUID().toString())
                 .claim("username", user.getUsername()).claim("token_version", user.getTokenVersion())
+                .claim("permissions", user.getRoles().stream().flatMap(role -> role.getPermissions().stream())
+                        .map(permission -> permission.getCode()).collect(java.util.stream.Collectors.toSet()))
                 .build();
         String accessToken = encoder.encode(JwtEncoderParameters.from(
                 JwsHeader.with(SignatureAlgorithm.RS256).build(), claims)).getTokenValue();
