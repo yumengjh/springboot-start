@@ -47,6 +47,9 @@ Until domain entities exist, `common/entity` contains only reusable JPA base typ
   credentials in its API response.
 - Login now verifies account status and credentials, then issues an RSA-signed access
   token and stores only the hash of the opaque refresh token.
+- Local SQLite HTTP smoke tests verified registration, login, refresh-token rotation,
+  logout revocation, and brute-force account locking after the configured failure
+  threshold.
 
 ## CI Status
 
