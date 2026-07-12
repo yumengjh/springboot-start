@@ -44,7 +44,8 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ApiError> malformedJson(HttpMessageNotReadableException exception) {
-        if (exception.getCause() instanceof UnrecognizedPropertyException) {
+        if (exception.getCause() instanceof UnrecognizedPropertyException
+                || exception.getMessage().contains("Unrecognized field")) {
             return ApiErrorFactory.response(ApiErrorCode.UNKNOWN_FIELD, List.of());
         }
         return ApiErrorFactory.response(ApiErrorCode.MALFORMED_JSON, List.of());
