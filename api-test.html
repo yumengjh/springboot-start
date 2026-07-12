@@ -1,21 +1,141 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Spring Boot API 测试台</title>
-<style>body{max-width:900px;margin:28px auto;padding:0 16px;font:14px/1.45 system-ui,sans-serif}section{border:1px solid #ddd;border-radius:8px;padding:14px;margin:12px 0}h1,h2{margin:4px 0 10px}input,select,button{box-sizing:border-box;padding:8px;margin:4px 0}input,select{width:100%}button{cursor:pointer;margin-right:6px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101418;color:#d7f5d7;padding:12px;border-radius:8px;min-height:100px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}@media(max-width:600px){.grid{grid-template-columns:1fr}}</style></head>
-<body><h1>Spring Boot API 测试台</h1><p>受权限保护的按钮需要先用超级管理员账号登录。</p>
-<label>服务地址</label><input id="base" value="http://localhost:8080">
-<section><h2>注册与登录</h2><div class="grid"><input id="username" placeholder="用户名"><input id="displayName" placeholder="显示名"><input id="password" type="password" placeholder="密码（至少 10 位）"></div><button onclick="register()">注册</button><button onclick="login()">登录</button><button onclick="refresh()">刷新 Token</button><button onclick="logout()">登出</button></section>
-<section><h2>当前用户</h2><input id="newDisplayName" placeholder="新的显示名"><input id="currentPassword" type="password" placeholder="当前密码"><input id="newPassword" type="password" placeholder="新密码"><button onclick="me()">查看本人</button><button onclick="updateProfile()">修改显示名</button><button onclick="changePassword()">修改密码</button></section>
-<section><h2>RBAC 与管理员用户</h2><input id="targetUserId" placeholder="目标用户 ID"><input id="roleCode" value="USER" placeholder="角色，例如 USER / ADMIN"><input id="permissionCode" value="system:config:read" placeholder="权限编码"><select id="status"><option>ACTIVE</option><option>LOCKED</option><option>DISABLED</option></select><button onclick="roles()">查看角色</button><button onclick="users()">查看用户</button><button onclick="assignRole()">分配角色</button><button onclick="removeRole()">移除角色</button><button onclick="grantPermission()">授予角色权限</button><button onclick="revokePermission()">移除角色权限</button><button onclick="updateStatus()">更新用户状态</button></section>
-<section><h2>运行时配置</h2><input id="settingKey" value="security.rate-limit.capacity" placeholder="配置键"><input id="settingValue" value="120" placeholder="配置值"><button onclick="settings()">读取配置</button><button onclick="updateSetting()">更新配置</button></section>
-<h2>响应</h2><pre id="out">等待请求…</pre>
-<script>
-let accessToken='',refreshToken='';const $=id=>document.getElementById(id),out=$('out');const base=()=>$('base').value.replace(/\/$/,'');
-async function api(path,method='GET',body){try{const headers={'Content-Type':'application/json'};if(accessToken)headers.Authorization=`Bearer ${accessToken}`;const r=await fetch(base()+path,{method,headers,body:body?JSON.stringify(body):undefined});const text=await r.text();let data=text;try{data=text?JSON.parse(text):null}catch{}out.textContent=`${method} ${path}\nHTTP ${r.status}\n${typeof data==='string'?data:JSON.stringify(data,null,2)}`;return {r,data}}catch(e){out.textContent=`请求失败：${e.message}`}}
-async function register(){await api('/api/v1/auth/register','POST',{username:$('username').value,displayName:$('displayName').value,password:$('password').value})}
-async function login(){const x=await api('/api/v1/auth/login','POST',{username:$('username').value,password:$('password').value});if(x?.data?.accessToken){accessToken=x.data.accessToken;refreshToken=x.data.refreshToken}}
-async function refresh(){const x=await api('/api/v1/auth/refresh','POST',{refreshToken});if(x?.data?.accessToken){accessToken=x.data.accessToken;refreshToken=x.data.refreshToken}}
-async function logout(){await api('/api/v1/auth/logout','POST',{refreshToken});accessToken='';refreshToken=''}
-const me=()=>api('/api/v1/users/me');const updateProfile=()=>api('/api/v1/users/me','PATCH',{displayName:$('newDisplayName').value});const changePassword=()=>api('/api/v1/users/me/password','PUT',{currentPassword:$('currentPassword').value,newPassword:$('newPassword').value});
-const roles=()=>api('/api/v1/rbac/roles');const users=()=>api('/api/v1/admin/users');const assignRole=()=>api(`/api/v1/rbac/users/${$('targetUserId').value}/roles/${$('roleCode').value}`,'PUT');const removeRole=()=>api(`/api/v1/rbac/users/${$('targetUserId').value}/roles/${$('roleCode').value}`,'DELETE');const grantPermission=()=>api(`/api/v1/rbac/roles/${$('roleCode').value}/permissions/${$('permissionCode').value}`,'PUT');const revokePermission=()=>api(`/api/v1/rbac/roles/${$('roleCode').value}/permissions/${$('permissionCode').value}`,'DELETE');const updateStatus=()=>api(`/api/v1/admin/users/${$('targetUserId').value}/status`,'PATCH',{status:$('status').value});
-const settings=()=>api('/api/v1/system/runtime-config');const updateSetting=()=>api(`/api/v1/system/runtime-config/${$('settingKey').value}`,'PUT',{value:$('settingValue').value});
-</script></body></html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spring Boot 管理 API 测试台</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, system-ui, -apple-system, "PingFang SC", sans-serif; color: #182230; background: #f4f7fb; }
+    * { box-sizing: border-box; }
+    body { max-width: 1240px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { margin: 0; font-size: 28px; } h2 { margin: 0 0 14px; font-size: 18px; } h3 { margin: 16px 0 8px; font-size: 14px; }
+    p { color: #5b6778; margin: 8px 0 0; }
+    section { background: #fff; border: 1px solid #dce3ed; border-radius: 12px; padding: 18px; margin-top: 16px; box-shadow: 0 2px 8px rgb(24 34 48 / 4%); }
+    label { display: block; color: #4b596b; font-size: 12px; font-weight: 650; margin: 8px 0 4px; }
+    input, select, button { border-radius: 7px; border: 1px solid #cbd5e1; min-height: 36px; font: inherit; }
+    input, select { width: 100%; padding: 7px 9px; background: #fff; } input:focus, select:focus { outline: 2px solid #93c5fd; border-color: #60a5fa; }
+    button { cursor: pointer; padding: 7px 11px; color: #fff; background: #2563eb; border-color: #2563eb; font-weight: 600; } button:hover { background: #1d4ed8; } button.secondary { color: #334155; background: #fff; border-color: #cbd5e1; } button.danger { background: #dc2626; border-color: #dc2626; } button:disabled { cursor: not-allowed; opacity: .55; }
+    .topbar, .toolbar, .form-grid, .two-column { display: grid; gap: 10px; } .topbar { grid-template-columns: 1fr minmax(220px, 360px); align-items: end; } .form-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .two-column { grid-template-columns: minmax(430px, 1fr) minmax(360px, .85fr); align-items: start; }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; margin-bottom: 12px; } .toolbar button { width: auto; } .count { margin-left: auto; color: #475569; font-weight: 650; }
+    .notice { margin-top: 14px; min-height: 24px; color: #475569; } .notice.ok { color: #15803d; } .notice.error { color: #b91c1c; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; } th, td { padding: 9px 10px; border-bottom: 1px solid #e7edf4; text-align: left; vertical-align: middle; } th { color: #64748b; font-size: 12px; } tbody tr { cursor: pointer; } tbody tr:hover, tbody tr.selected { background: #eff6ff; } .id { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .badge { display: inline-block; border-radius: 999px; padding: 2px 8px; font-weight: 650; font-size: 12px; } .ACTIVE { background: #dcfce7; color: #166534; } .LOCKED { background: #fef3c7; color: #92400e; } .DISABLED { background: #fee2e2; color: #991b1b; }
+    .selected-user { border: 1px dashed #93c5fd; background: #f8fbff; border-radius: 8px; padding: 10px; min-height: 52px; color: #475569; }
+    .role-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 8px; margin: 10px 0; } .role-card { text-align: left; color: #334155; background: #fff; border-color: #cbd5e1; } .role-card.active { color: #1e3a8a; background: #dbeafe; border-color: #60a5fa; } .role-card small { display: block; margin-top: 3px; color: #64748b; font-weight: 400; }
+    .permission-group { border-top: 1px solid #e7edf4; padding: 8px 0; } .permission-group:first-child { border-top: 0; } .permission-group h3 { color: #334155; } .check { display: flex; align-items: center; gap: 8px; padding: 4px 0; color: #475569; cursor: pointer; } .check input { width: auto; min-height: auto; }
+    pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; background: #101827; color: #d1fae5; padding: 14px; border-radius: 8px; min-height: 140px; }
+    .muted { color: #64748b; font-size: 12px; } .hidden { display: none; }
+    @media (max-width: 760px) { .topbar, .form-grid, .two-column { grid-template-columns: 1fr; } .count { margin-left: 0; width: 100%; } th:nth-child(3), td:nth-child(3) { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div><h1>Spring Boot 管理 API 测试台</h1><p>先登录，再加载用户和 RBAC 数据。令牌只保留在当前页面内存中。</p></div>
+    <div><label for="base">服务地址</label><input id="base" value="http://localhost:8080"></div>
+  </div>
+
+  <section>
+    <h2>登录与令牌</h2>
+    <div class="form-grid">
+      <div><label for="username">用户名</label><input id="username" value="admin" autocomplete="username"></div>
+      <div><label for="password">密码</label><input id="password" type="password" placeholder="输入 .env 中的管理员密码" autocomplete="current-password"></div>
+      <div><label for="displayName">注册显示名（仅注册时使用）</label><input id="displayName" placeholder="例如：张三"></div>
+    </div>
+    <div class="toolbar"><button onclick="login()">登录并加载数据</button><button class="secondary" onclick="register()">注册测试用户</button><button class="secondary" onclick="refreshToken()">刷新 Token</button><button class="secondary" onclick="logout()">登出</button></div>
+    <div id="notice" class="notice">未登录。默认用户名为 <code>admin</code>，密码不会预填。</div>
+  </section>
+
+  <section>
+    <h2>用户管理</h2>
+    <div class="toolbar"><button onclick="loadUsers()">刷新用户列表</button><span id="userCount" class="count">用户总数：未加载</span></div>
+    <p class="muted">点击用户行即可选中。当前后端可查询 ID、用户名、显示名和状态；管理员可修改状态、分配或移除角色。</p>
+    <div style="overflow:auto"><table><thead><tr><th>用户名</th><th>显示名</th><th>状态</th><th>ID</th></tr></thead><tbody id="userRows"><tr><td colspan="4" class="muted">请先登录并加载用户。</td></tr></tbody></table></div>
+    <h3>选中用户操作</h3>
+    <div id="selectedUser" class="selected-user">尚未选择用户。</div>
+    <div class="form-grid">
+      <div><label for="status">新状态</label><select id="status"><option value="ACTIVE">ACTIVE（正常）</option><option value="LOCKED">LOCKED（临时锁定）</option><option value="DISABLED">DISABLED（禁用）</option></select></div>
+      <div><label for="userRoleSelect">要分配/移除的角色</label><select id="userRoleSelect"><option>请先加载角色</option></select></div>
+      <div><label>&nbsp;</label><div class="toolbar"><button onclick="updateStatus()">更新状态</button><button class="secondary" onclick="assignRole()">分配角色</button><button class="danger" onclick="removeRole()">移除角色</button></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>RBAC：角色与权限</h2>
+    <p class="muted">先选择一个角色。勾选框表示该角色当前拥有的权限；点击保存后，页面会只提交实际发生变化的权限。</p>
+    <div class="toolbar"><button onclick="loadRoles()">刷新角色和权限</button><span id="roleSummary" class="count">角色：未加载</span></div>
+    <div id="roleCards" class="role-list"><span class="muted">请先加载角色。</span></div>
+    <div class="two-column">
+      <div><label for="roleSelect">当前编辑的角色</label><select id="roleSelect" onchange="renderPermissionEditor()"><option value="">请先加载角色</option></select><div id="permissionGroups" class="hidden"></div><div class="toolbar"><button id="savePermissions" onclick="saveRolePermissions()" disabled>保存角色权限</button></div></div>
+      <div><h3>当前角色权限摘要</h3><pre id="rolePermissions">尚未选择角色。</pre></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>当前用户自助操作</h2>
+    <div class="form-grid"><div><label for="newDisplayName">新的显示名</label><input id="newDisplayName"></div><div><label for="currentPassword">当前密码</label><input id="currentPassword" type="password"></div><div><label for="newPassword">新密码</label><input id="newPassword" type="password"></div></div>
+    <div class="toolbar"><button class="secondary" onclick="me()">查看本人</button><button class="secondary" onclick="updateProfile()">修改显示名</button><button class="secondary" onclick="changePassword()">修改密码</button></div>
+  </section>
+
+  <section>
+    <h2>运行时配置</h2>
+    <div class="form-grid"><div><label for="settingKey">配置键</label><input id="settingKey" value="security.rate-limit.capacity"></div><div><label for="settingValue">配置值</label><input id="settingValue" value="120"></div><div><label>&nbsp;</label><div class="toolbar"><button class="secondary" onclick="settings()">读取配置</button><button class="secondary" onclick="updateSetting()">更新配置</button></div></div></div>
+  </section>
+
+  <section><h2>最近响应</h2><pre id="out">等待请求…</pre></section>
+
+  <script>
+    let accessToken = '', refreshTokenValue = '', users = [], roles = [], selectedUserId = '';
+    const permissionsByGroup = {
+      '用户管理': ['system:user:read', 'system:user:write'],
+      '角色与授权': ['system:role:read', 'system:role:write', 'system:role:assign'],
+      '运行时配置': ['system:config:read', 'system:config:write'],
+      '审计': ['system:audit:read'],
+      '公告示例': ['example:announcement:read', 'example:announcement:write', 'example:announcement:delete']
+    };
+    const $ = id => document.getElementById(id);
+    const base = () => $('base').value.trim().replace(/\/$/, '');
+    const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
+    const showNotice = (message, type = '') => { const el = $('notice'); el.className = `notice ${type}`; el.textContent = message; };
+    const showResponse = (method, path, status, data) => { $('out').textContent = `${method} ${path}\nHTTP ${status}\n${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}`; };
+
+    async function api(path, method = 'GET', body, quiet = false) {
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+        const response = await fetch(base() + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+        const text = await response.text(); let data = text;
+        try { data = text ? JSON.parse(text) : null; } catch { /* 非 JSON 响应原样展示 */ }
+        if (!quiet) showResponse(method, path, response.status, data);
+        if (!response.ok) showNotice(`请求失败（HTTP ${response.status}）：${data?.message || data?.code || text || '未知错误'}`, 'error');
+        return { ok: response.ok, status: response.status, data };
+      } catch (error) { showNotice(`无法连接服务：${error.message}`, 'error'); showResponse(method, path, 'NETWORK_ERROR', error.message); return { ok: false }; }
+    }
+
+    async function login() { const result = await api('/api/v1/auth/login', 'POST', { username: $('username').value, password: $('password').value }); if (!result.ok || !result.data?.accessToken) return; accessToken = result.data.accessToken; refreshTokenValue = result.data.refreshToken; showNotice('登录成功，正在加载用户与 RBAC 数据。', 'ok'); await Promise.all([loadUsers(), loadRoles()]); }
+    async function register() { await api('/api/v1/auth/register', 'POST', { username: $('username').value, displayName: $('displayName').value, password: $('password').value }); }
+    async function refreshToken() { const result = await api('/api/v1/auth/refresh', 'POST', { refreshToken: refreshTokenValue }); if (result.ok && result.data?.accessToken) { accessToken = result.data.accessToken; refreshTokenValue = result.data.refreshToken; showNotice('Token 已刷新。', 'ok'); } }
+    async function logout() { await api('/api/v1/auth/logout', 'POST', { refreshToken: refreshTokenValue }); accessToken = ''; refreshTokenValue = ''; users = []; roles = []; selectedUserId = ''; renderUsers(); renderRoles(); showNotice('已登出，页面内存中的 Token 已清除。'); }
+
+    async function loadUsers() { const result = await api('/api/v1/admin/users'); if (!result.ok || !Array.isArray(result.data)) return; users = result.data; renderUsers(); }
+    function renderUsers() { $('userCount').textContent = `用户总数：${users.length || 0}`; $('userRows').innerHTML = users.length ? users.map(user => `<tr class="${user.id === selectedUserId ? 'selected' : ''}" onclick="selectUser('${escapeHtml(user.id)}')"><td>${escapeHtml(user.username)}</td><td>${escapeHtml(user.displayName)}</td><td><span class="badge ${escapeHtml(user.status)}">${escapeHtml(user.status)}</span></td><td class="id" title="${escapeHtml(user.id)}">${escapeHtml(user.id)}</td></tr>`).join('') : '<tr><td colspan="4" class="muted">暂无用户，或尚未加载。</td></tr>'; renderSelectedUser(); }
+    function selectUser(id) { selectedUserId = id; const user = users.find(item => item.id === id); if (user) $('status').value = user.status; renderUsers(); }
+    function renderSelectedUser() { const user = users.find(item => item.id === selectedUserId); $('selectedUser').innerHTML = user ? `<strong>${escapeHtml(user.username)}</strong>（${escapeHtml(user.displayName)}）<br><span class="muted">ID：${escapeHtml(user.id)}；当前状态：${escapeHtml(user.status)}</span>` : '尚未选择用户。'; }
+    function selectedUserOrWarn() { if (selectedUserId) return true; showNotice('请先从用户列表点击选择一个用户。', 'error'); return false; }
+    async function updateStatus() { if (!selectedUserOrWarn()) return; const result = await api(`/api/v1/admin/users/${encodeURIComponent(selectedUserId)}/status`, 'PATCH', { status: $('status').value }); if (result.ok) { showNotice('用户状态已更新。', 'ok'); await loadUsers(); } }
+    async function assignRole() { if (!selectedUserOrWarn()) return; const role = $('userRoleSelect').value; if (!role) return; const result = await api(`/api/v1/rbac/users/${encodeURIComponent(selectedUserId)}/roles/${encodeURIComponent(role)}`, 'PUT'); if (result.ok) { showNotice(`已为选中用户分配 ${role}。`, 'ok'); await Promise.all([loadUsers(), loadRoles()]); } }
+    async function removeRole() { if (!selectedUserOrWarn()) return; const role = $('userRoleSelect').value; if (!role) return; const result = await api(`/api/v1/rbac/users/${encodeURIComponent(selectedUserId)}/roles/${encodeURIComponent(role)}`, 'DELETE'); if (result.ok) { showNotice(`已从选中用户移除 ${role}。`, 'ok'); await Promise.all([loadUsers(), loadRoles()]); } }
+
+    async function loadRoles() { const result = await api('/api/v1/rbac/roles'); if (!result.ok || !Array.isArray(result.data)) return; roles = result.data; renderRoles(); }
+    function renderRoles() { const selected = $('roleSelect').value || roles[0]?.code || ''; $('roleSummary').textContent = `角色：${roles.length || 0} 个；权限：${new Set(roles.flatMap(role => role.permissions)).size} 个`; $('roleCards').innerHTML = roles.length ? roles.map(role => `<button class="role-card ${role.code === selected ? 'active' : ''}" onclick="chooseRole('${escapeHtml(role.code)}')">${escapeHtml(role.code)}<small>${role.permissions.length} 个权限</small></button>`).join('') : '<span class="muted">暂无角色，或尚未加载。</span>'; $('roleSelect').innerHTML = roles.length ? roles.map(role => `<option value="${escapeHtml(role.code)}">${escapeHtml(role.code)}（${role.permissions.length} 个权限）</option>`).join('') : '<option value="">请先加载角色</option>'; $('userRoleSelect').innerHTML = roles.length ? roles.map(role => `<option value="${escapeHtml(role.code)}">${escapeHtml(role.code)}</option>`).join('') : '<option value="">请先加载角色</option>'; if (selected && roles.some(role => role.code === selected)) $('roleSelect').value = selected; renderPermissionEditor(); }
+    function chooseRole(code) { $('roleSelect').value = code; renderRoles(); }
+    function renderPermissionEditor() { const role = roles.find(item => item.code === $('roleSelect').value); const container = $('permissionGroups'); const button = $('savePermissions'); if (!role) { container.classList.add('hidden'); button.disabled = true; $('rolePermissions').textContent = '尚未选择角色。'; return; } const known = new Set(Object.values(permissionsByGroup).flat()); const dynamic = role.permissions.filter(permission => !known.has(permission)); const groups = { ...permissionsByGroup }; if (dynamic.length) groups['其他已发现权限'] = dynamic; container.innerHTML = Object.entries(groups).map(([title, permissions]) => `<div class="permission-group"><h3>${escapeHtml(title)}</h3>${permissions.map(permission => `<label class="check"><input type="checkbox" value="${escapeHtml(permission)}" ${role.permissions.includes(permission) ? 'checked' : ''}> <code>${escapeHtml(permission)}</code></label>`).join('')}</div>`).join(''); container.classList.remove('hidden'); button.disabled = false; $('rolePermissions').textContent = role.permissions.length ? role.permissions.join('\n') : '该角色暂无权限。'; }
+    async function saveRolePermissions() { const role = roles.find(item => item.code === $('roleSelect').value); if (!role) return; const desired = new Set([...document.querySelectorAll('#permissionGroups input:checked')].map(input => input.value)); const current = new Set(role.permissions); const additions = [...desired].filter(permission => !current.has(permission)); const removals = [...current].filter(permission => !desired.has(permission)); for (const permission of additions) { const result = await api(`/api/v1/rbac/roles/${encodeURIComponent(role.code)}/permissions/${encodeURIComponent(permission)}`, 'PUT', undefined, true); if (!result.ok) return; } for (const permission of removals) { const result = await api(`/api/v1/rbac/roles/${encodeURIComponent(role.code)}/permissions/${encodeURIComponent(permission)}`, 'DELETE', undefined, true); if (!result.ok) return; } showNotice(additions.length || removals.length ? `已更新 ${role.code}：新增 ${additions.length} 项、移除 ${removals.length} 项权限。` : '权限没有变化，无需保存。', 'ok'); if (additions.length || removals.length) await loadRoles(); }
+
+    const me = () => api('/api/v1/users/me');
+    const updateProfile = () => api('/api/v1/users/me', 'PATCH', { displayName: $('newDisplayName').value });
+    const changePassword = () => api('/api/v1/users/me/password', 'PUT', { currentPassword: $('currentPassword').value, newPassword: $('newPassword').value });
+    const settings = () => api('/api/v1/system/runtime-config');
+    const updateSetting = () => api(`/api/v1/system/runtime-config/${encodeURIComponent($('settingKey').value)}`, 'PUT', { value: $('settingValue').value });
+  </script>
+</body>
+</html>
