@@ -24,6 +24,9 @@ public class User extends AuditedEntity {
     @Column(nullable = false, length = 32)
     private UserStatus status;
 
+    @Column(name = "token_version", nullable = false)
+    private long tokenVersion;
+
     protected User() {
     }
 
@@ -48,5 +51,9 @@ public class User extends AuditedEntity {
 
     public UserStatus getStatus() {
         return status;
+    }
+
+    public long getTokenVersion() {
+        return tokenVersion;
     }
 }

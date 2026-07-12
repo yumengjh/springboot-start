@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.yumg.starter.modules.auth.api.AuthController;
 import com.yumg.starter.modules.auth.api.dto.UserResponse;
 import com.yumg.starter.modules.auth.application.RegistrationUseCase;
+import com.yumg.starter.modules.auth.application.AuthenticationUseCase;
 import com.yumg.starter.common.api.ApiExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,11 +19,14 @@ class AuthControllerTest {
 
     private MockMvc mvc;
     private RegistrationUseCase registrationService;
+    private AuthenticationUseCase authenticationService;
 
     @BeforeEach
     void setUp() {
         registrationService = request -> new UserResponse("user-1", "alice", "Alice", "ACTIVE");
-        mvc = MockMvcBuilders.standaloneSetup(new AuthController(registrationService))
+        authenticationService = request -> new com.yumg.starter.modules.auth.api.dto.TokenResponse(
+                "access", "refresh", "Bearer", 900);
+        mvc = MockMvcBuilders.standaloneSetup(new AuthController(registrationService, authenticationService))
                 .setMessageConverters(new MappingJackson2HttpMessageConverter())
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
@@ -51,5 +55,15 @@ class AuthControllerTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    void returnsAccessAndRefreshTokensForLogin() throws Exception {
+        mvc.perform(post("/api/v1/auth/login").contentType("application/json")
+                        .content("{\"username\":\"alice\",\"password\":\"correct-horse-battery\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("access"))
+                .andExpect(jsonPath("$.refreshToken").value("refresh"))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"));
     }
 }

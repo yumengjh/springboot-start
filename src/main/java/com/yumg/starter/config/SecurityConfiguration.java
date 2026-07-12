@@ -15,9 +15,10 @@ public class SecurityConfiguration {
                                             TraceIdFilter traceIdFilter) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
+                .oauth2ResourceServer(resourceServer -> resourceServer.jwt(jwt -> {}))
                 .addFilterBefore(traceIdFilter, SecurityContextHolderFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/v1/auth/register", "/actuator/health/**",
+                        .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/actuator/health/**",
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                         .permitAll()
                         .anyRequest().authenticated())

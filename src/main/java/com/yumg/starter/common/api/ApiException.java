@@ -20,5 +20,9 @@ public class ApiException extends RuntimeException {
         return new ApiException(ApiErrorCode.RATE_LIMITED);
     }
 
+    public static ApiException unauthorized() {
+        return new ApiException(ApiErrorCode.AUTHENTICATION_REQUIRED);
+    }
+
     ApiErrorCode error() { return error; }
 }

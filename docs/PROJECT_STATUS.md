@@ -41,6 +41,8 @@ Until domain entities exist, `common/entity` contains only reusable JPA base typ
 - Registration validates input, lowercases usernames, hashes passwords with Spring
   Security's delegating BCrypt encoder, persists users through JPA, and never returns
   credentials in its API response.
+- Login now verifies account status and credentials, then issues an RSA-signed access
+  token and stores only the hash of the opaque refresh token.
 
 ## CI Status
 
