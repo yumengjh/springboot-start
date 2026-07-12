@@ -1,86 +1,21 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Spring Boot API 测试页</title>
-  <style>
-    body { max-width: 760px; margin: 32px auto; padding: 0 16px; font: 15px/1.5 system-ui, sans-serif; }
-    section { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin: 16px 0; }
-    input, button { box-sizing: border-box; padding: 8px; margin: 4px 0; }
-    input { width: 100%; } button { cursor: pointer; margin-right: 8px; }
-    pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #111; color: #d7ffd7; padding: 12px; border-radius: 8px; }
-    label { display: block; font-weight: 600; margin-top: 8px; }
-  </style>
-</head>
-<body>
-  <h1>Spring Boot API 测试页</h1>
-
-  <label>服务地址</label>
-  <input id="baseUrl" value="http://localhost:8080">
-
-  <section>
-    <h2>注册</h2>
-    <input id="username" placeholder="用户名，例如 demo_user">
-    <input id="displayName" placeholder="显示名，例如 Demo User">
-    <input id="password" type="password" placeholder="密码，至少 10 位">
-    <button onclick="register()">注册</button>
-  </section>
-
-  <section>
-    <h2>认证</h2>
-    <button onclick="login()">登录</button>
-    <button onclick="refresh()">刷新 Token</button>
-    <button onclick="logout()">登出</button>
-    <p>登录或刷新成功后，Refresh Token 会自动保存到当前浏览器页面。</p>
-  </section>
-
-  <h2>响应</h2>
-  <pre id="output">等待请求…</pre>
-
-  <script>
-    const output = document.querySelector('#output');
-    const value = id => document.querySelector(`#${id}`).value;
-    const baseUrl = () => value('baseUrl').replace(/\/$/, '');
-    let refreshToken = '';
-
-    async function request(path, body) {
-      try {
-        const response = await fetch(`${baseUrl()}${path}`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-        });
-        const text = await response.text();
-        const data = text ? JSON.parse(text) : null;
-        output.textContent = `HTTP ${response.status}\n${JSON.stringify(data, null, 2)}`;
-        return { response, data };
-      } catch (error) {
-        output.textContent = `请求失败：${error.message}`;
-        throw error;
-      }
-    }
-
-    async function register() {
-      await request('/api/v1/auth/register', {
-        username: value('username'), displayName: value('displayName'), password: value('password')
-      });
-    }
-
-    async function login() {
-      const { data } = await request('/api/v1/auth/login', {
-        username: value('username'), password: value('password')
-      });
-      if (data?.refreshToken) refreshToken = data.refreshToken;
-    }
-
-    async function refresh() {
-      const { data } = await request('/api/v1/auth/refresh', { refreshToken });
-      if (data?.refreshToken) refreshToken = data.refreshToken;
-    }
-
-    async function logout() {
-      await request('/api/v1/auth/logout', { refreshToken });
-      refreshToken = '';
-    }
-  </script>
-</body>
-</html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Spring Boot API 测试台</title>
+<style>body{max-width:900px;margin:28px auto;padding:0 16px;font:14px/1.45 system-ui,sans-serif}section{border:1px solid #ddd;border-radius:8px;padding:14px;margin:12px 0}h1,h2{margin:4px 0 10px}input,select,button{box-sizing:border-box;padding:8px;margin:4px 0}input,select{width:100%}button{cursor:pointer;margin-right:6px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101418;color:#d7f5d7;padding:12px;border-radius:8px;min-height:100px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}@media(max-width:600px){.grid{grid-template-columns:1fr}}</style></head>
+<body><h1>Spring Boot API 测试台</h1><p>受权限保护的按钮需要先用超级管理员账号登录。</p>
+<label>服务地址</label><input id="base" value="http://localhost:8080">
+<section><h2>注册与登录</h2><div class="grid"><input id="username" placeholder="用户名"><input id="displayName" placeholder="显示名"><input id="password" type="password" placeholder="密码（至少 10 位）"></div><button onclick="register()">注册</button><button onclick="login()">登录</button><button onclick="refresh()">刷新 Token</button><button onclick="logout()">登出</button></section>
+<section><h2>当前用户</h2><input id="newDisplayName" placeholder="新的显示名"><input id="currentPassword" type="password" placeholder="当前密码"><input id="newPassword" type="password" placeholder="新密码"><button onclick="me()">查看本人</button><button onclick="updateProfile()">修改显示名</button><button onclick="changePassword()">修改密码</button></section>
+<section><h2>RBAC 与管理员用户</h2><input id="targetUserId" placeholder="目标用户 ID"><input id="roleCode" value="USER" placeholder="角色，例如 USER / ADMIN"><input id="permissionCode" value="system:config:read" placeholder="权限编码"><select id="status"><option>ACTIVE</option><option>LOCKED</option><option>DISABLED</option></select><button onclick="roles()">查看角色</button><button onclick="users()">查看用户</button><button onclick="assignRole()">分配角色</button><button onclick="removeRole()">移除角色</button><button onclick="grantPermission()">授予角色权限</button><button onclick="revokePermission()">移除角色权限</button><button onclick="updateStatus()">更新用户状态</button></section>
+<section><h2>运行时配置</h2><input id="settingKey" value="security.rate-limit.capacity" placeholder="配置键"><input id="settingValue" value="120" placeholder="配置值"><button onclick="settings()">读取配置</button><button onclick="updateSetting()">更新配置</button></section>
+<h2>响应</h2><pre id="out">等待请求…</pre>
+<script>
+let accessToken='',refreshToken='';const $=id=>document.getElementById(id),out=$('out');const base=()=>$('base').value.replace(/\/$/,'');
+async function api(path,method='GET',body){try{const headers={'Content-Type':'application/json'};if(accessToken)headers.Authorization=`Bearer ${accessToken}`;const r=await fetch(base()+path,{method,headers,body:body?JSON.stringify(body):undefined});const text=await r.text();let data=text;try{data=text?JSON.parse(text):null}catch{}out.textContent=`${method} ${path}\nHTTP ${r.status}\n${typeof data==='string'?data:JSON.stringify(data,null,2)}`;return {r,data}}catch(e){out.textContent=`请求失败：${e.message}`}}
+async function register(){await api('/api/v1/auth/register','POST',{username:$('username').value,displayName:$('displayName').value,password:$('password').value})}
+async function login(){const x=await api('/api/v1/auth/login','POST',{username:$('username').value,password:$('password').value});if(x?.data?.accessToken){accessToken=x.data.accessToken;refreshToken=x.data.refreshToken}}
+async function refresh(){const x=await api('/api/v1/auth/refresh','POST',{refreshToken});if(x?.data?.accessToken){accessToken=x.data.accessToken;refreshToken=x.data.refreshToken}}
+async function logout(){await api('/api/v1/auth/logout','POST',{refreshToken});accessToken='';refreshToken=''}
+const me=()=>api('/api/v1/users/me');const updateProfile=()=>api('/api/v1/users/me','PATCH',{displayName:$('newDisplayName').value});const changePassword=()=>api('/api/v1/users/me/password','PUT',{currentPassword:$('currentPassword').value,newPassword:$('newPassword').value});
+const roles=()=>api('/api/v1/rbac/roles');const users=()=>api('/api/v1/admin/users');const assignRole=()=>api(`/api/v1/rbac/users/${$('targetUserId').value}/roles/${$('roleCode').value}`,'PUT');const removeRole=()=>api(`/api/v1/rbac/users/${$('targetUserId').value}/roles/${$('roleCode').value}`,'DELETE');const grantPermission=()=>api(`/api/v1/rbac/roles/${$('roleCode').value}/permissions/${$('permissionCode').value}`,'PUT');const revokePermission=()=>api(`/api/v1/rbac/roles/${$('roleCode').value}/permissions/${$('permissionCode').value}`,'DELETE');const updateStatus=()=>api(`/api/v1/admin/users/${$('targetUserId').value}/status`,'PATCH',{status:$('status').value});
+const settings=()=>api('/api/v1/system/runtime-config');const updateSetting=()=>api(`/api/v1/system/runtime-config/${$('settingKey').value}`,'PUT',{value:$('settingValue').value});
+</script></body></html>
