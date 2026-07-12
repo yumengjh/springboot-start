@@ -23,7 +23,6 @@ local example and must not be reused.
 
 ```bash
 export APP_BOOTSTRAP_ADMIN_USERNAME=admin
-export APP_BOOTSTRAP_ADMIN_DISPLAY_NAME=Administrator
 export APP_BOOTSTRAP_ADMIN_PASSWORD='LocalPassword123!'
 ./mvnw spring-boot:run
 ```
@@ -46,19 +45,10 @@ configurable.
 
 ### Login and refresh
 
-The authentication contract groups login and refresh beneath `/api/v1/auth`, but the
-design does not specify their literal route suffixes or DTO fields. Inspect the
-assembled application's OpenAPI document before calling them:
-
-```bash
-curl --fail http://localhost:8080/v3/api-docs > openapi.json
-```
-
-The conceptual login request supplies the configured username and password; the
-conceptual refresh request supplies the most recently returned opaque refresh token.
-Do not treat `/api/v1/auth/login`, `/api/v1/auth/refresh`, or any example JSON field
-names as authoritative until controller mappings and OpenAPI are present in the
-assembled repository.
+Implemented authentication endpoints are `POST /api/v1/auth/register`, `login`,
+`refresh`, and `logout`. Login accepts `username` and `password`; refresh and logout
+accept `{"refreshToken":"..."}`. Login and refresh return `accessToken`,
+`refreshToken`, `tokenType`, and `expiresIn`.
 
 Refresh tokens are one-time values: replace the stored token after every successful
 refresh. See [Authentication](docs/api/authentication.md) for lifecycle and key
@@ -110,7 +100,6 @@ The multi-stage image uses a Java 21 runtime, runs as a non-root user, exposes p
 | `DB_USERNAME` | PostgreSQL login | With `postgres` profile |
 | `DB_PASSWORD` | PostgreSQL secret | With `postgres` profile |
 | `APP_BOOTSTRAP_ADMIN_USERNAME` | Initial super-admin username | When bootstrap is required |
-| `APP_BOOTSTRAP_ADMIN_DISPLAY_NAME` | Initial super-admin display name | When bootstrap is required |
 | `APP_BOOTSTRAP_ADMIN_PASSWORD` | Initial super-admin password | When bootstrap is required |
 
 JWT RSA keys, trusted proxy networks, CORS origins, and production Swagger exposure are
@@ -128,11 +117,10 @@ changed without restart.
 
 ```text
 com.yumg.starter
-├── bootstrap   startup, Spring configuration, seeds, and build metadata
-├── shared      cross-cutting API, persistence, security, web, and test contracts
-├── identity    users, credentials, sessions, roles, and permissions
-├── system      service governance, settings, IP policy, audit, and system info
-└── example     announcement domain and API
+├── config      startup, security, and bootstrap configuration
+├── common      cross-cutting API, persistence, and web contracts
+├── entities    shared database entities
+└── modules     auth, users, rbac, runtimeconfig, and future business modules
 ```
 
 Each feature module may separate `api`, `application`, `domain`, and `infrastructure`

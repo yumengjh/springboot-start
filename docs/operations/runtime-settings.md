@@ -19,6 +19,11 @@ the common typed-setting mechanism but own their keys, validation, API, and perm
 
 ## Typed key registry
 
+Implemented routes are `GET /api/v1/system/runtime-config` and
+`PUT /api/v1/system/runtime-config/{key}` with `{"value":"..."}`. The current
+implementation initializes rate-limit, brute-force, and audit settings, then refreshes
+the in-memory snapshot after updates. Enforcement and audit-event persistence are next.
+
 The registry defines keys for:
 
 - general API rate-limit capacity and window;

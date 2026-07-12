@@ -34,6 +34,12 @@ every permission.
 
 ## API and enforcement
 
+Implemented administration routes are `GET /api/v1/rbac/roles`, user-role assignment
+and removal at `/api/v1/rbac/users/{userId}/roles/{roleCode}`, and role-permission
+assignment/removal at `/api/v1/rbac/roles/{roleCode}/permissions/{permissionCode}`.
+They use `system:role:read`, `system:role:assign`, and `system:role:write`.
+User listing, account-status management, and role/permission creation remain pending.
+
 The identity API provides role/permission CRUD, assignment operations, paginated user
 listing, account-status operations, and forced session revocation. Exact route suffixes
 and DTO shapes are published in `/v3/api-docs`.

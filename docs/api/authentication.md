@@ -2,10 +2,9 @@
 
 ## Contract
 
-Authentication endpoints are grouped under `/api/v1/auth`. The contract includes
-registration (`POST /api/v1/auth/register`), login, refresh, current-device logout, and
-all-device logout. Use `/v3/api-docs` or Swagger UI for the exact request/response DTOs
-and logout route suffixes in the assembled implementation.
+Authentication endpoints are `POST /api/v1/auth/register`, `login`, `refresh`, and
+`logout`. Registration accepts `username`, `displayName`, and `password`; login accepts
+`username` and `password`; refresh/logout accept `refreshToken`.
 
 Registration accepts a username, display name, and password. Usernames match
 `[A-Za-z0-9_.-]{3,32}` and normalize with `Locale.ROOT`; display names are 1–80
@@ -17,9 +16,7 @@ Login returns:
 - a short-lived RSA SHA-256 signed JWT access token; and
 - an opaque refresh token backed only by a SHA-256 hash in the database.
 
-The exact access-token and refresh-session lifetimes are configuration values in the
-implementation; the design intentionally does not prescribe numeric durations. Check
-the active configuration and token response rather than assuming a lifetime.
+Access tokens expire after 15 minutes and refresh sessions expire after 30 days.
 
 ## Access tokens
 
@@ -41,7 +38,7 @@ must atomically replace the old value. The server stores only a hash, plus famil
 user, expiry, consumption/revocation state, and sanitized client metadata.
 
 If an already-consumed token is presented, the server returns the stable
-`REFRESH_TOKEN_REUSED` error and revokes every session in that token family. Treat this
+`AUTHENTICATION_REQUIRED` and revokes every session in that token family. Treat this
 as a possible credential theft event: discard the entire local session and require a
 new login. Do not retry the stale token.
 

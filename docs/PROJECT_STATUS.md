@@ -4,6 +4,10 @@
 
 `springboot-start` is a reusable Spring Boot backend foundation for the author's own projects and later client work. It is not a generic collection of snippets or an all-in-one SaaS. Its first usable milestone is a runnable modular monolith with:
 
+Documentation is part of every feature change: controller routes, request/response
+contracts, startup settings, security behavior, and implementation status must be
+updated in the same commit as the corresponding code.
+
 - SQLite for local startup and PostgreSQL for deployment.
 - Database migrations, container delivery, GitHub Actions, health checks, and safe configuration.
 - Account registration, JWT access tokens, rotating refresh sessions, and revocable login state.
