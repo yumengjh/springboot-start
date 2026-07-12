@@ -9,6 +9,8 @@ spring:
         foreign_keys: true
   jpa:
     database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: none
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.yaml

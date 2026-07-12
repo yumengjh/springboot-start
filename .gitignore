@@ -1,9 +1,11 @@
 .worktrees/
 .superpowers/
 target/
-data/
+data/*
+!data/.gitkeep
 .env
 .idea/
 .vscode/
 *.iml
 *.log
+.DS_Store

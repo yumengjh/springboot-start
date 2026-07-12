@@ -36,6 +36,11 @@ Until domain entities exist, `common/entity` contains only reusable JPA base typ
 - Standard API errors, validation errors, safe 401/403 responses, request trace IDs, and response pagination.
 - Container image, Compose example, GitHub Actions CI, image scan/publish workflow, and operational documentation.
 - Initial architecture rules that prevent cross-module controller-to-repository dependencies.
+- The Yumer-style top-level packages now exist: `config`, `common`, `entities`, and
+  `modules`. The first module, `modules/auth`, contains public registration.
+- Registration validates input, lowercases usernames, hashes passwords with Spring
+  Security's delegating BCrypt encoder, persists users through JPA, and never returns
+  credentials in its API response.
 
 ## CI Status
 
@@ -49,14 +54,16 @@ These fixes are part of the next push. GitHub Actions is the source of truth for
 
 ## In Progress
 
-- Move from the interim `shared` naming to the Yumer-style `common`, `entities`, and `modules` layout.
-- Complete public registration, real BCrypt persistence tests, and account state transitions.
+- Complete the remaining Yumer-style modules: `users`, `rbac`, `runtime-config`,
+  `security`, and `announcements`.
+- Extend the auth module from registration to login, JWT access tokens, refresh-token
+  rotation, logout, and account state transitions.
 - Finish typed runtime configuration, audit records, and their integration with the identity/security modules.
 
 ## Next Delivery Order
 
-1. Make the current CI green and finish the common/entities/modules skeleton.
-2. Implement `auth`, `users`, and `rbac` together: registration, login, token refresh rotation, logout, account state, roles, and permissions.
+1. Implement the rest of `auth`, then `users` and `rbac`: login, token refresh rotation,
+   logout, account state, roles, and permissions.
 3. Implement `runtime-config` and `security`: audited hot settings, IP rules, rate limits, and brute-force protection.
 4. Implement `announcements` as the reference business module.
 5. Add OpenAPI, bootstrap administrator support, full Docker/Compose verification, and a final end-to-end CI pass.

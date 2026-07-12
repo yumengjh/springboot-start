@@ -1,4 +1,4 @@
-package com.yumg.starter.common.persistence;
+package com.yumg.starter.common.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;

@@ -2,6 +2,7 @@ package com.yumg.starter.common.api;
 
 import com.yumg.starter.common.web.TraceIdFilter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -9,6 +10,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 
 @Configuration(proxyBeanMethods = false)
+@ConditionalOnProperty(name = "app.security.shared-fallback", havingValue = "true")
 public class SharedSecurityErrorConfiguration {
     @Bean
     @ConditionalOnMissingBean(SecurityFilterChain.class)

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -15,6 +16,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @ActiveProfiles("postgres")
 @SpringBootTest
+@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 class PostgresMigrationTest {
 
     private static final Set<String> CORE_TABLES = Set.of("users", "roles", "permissions",
