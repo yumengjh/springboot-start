@@ -6,6 +6,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.Convert;
+import com.yumg.starter.common.entity.InstantStringConverter;
+import java.time.Instant;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
@@ -31,6 +34,9 @@ public class User extends AuditedEntity {
 
     @Column(name = "token_version", nullable = false)
     private long tokenVersion;
+    @Column(name = "locked_until")
+    @Convert(converter = InstantStringConverter.class)
+    private Instant lockedUntil;
     @ManyToMany
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new LinkedHashSet<>();
@@ -76,4 +82,8 @@ public class User extends AuditedEntity {
     public void grant(Role role) { roles.add(role); }
     public void revoke(Role role) { roles.remove(role); }
     public Set<Role> getRoles() { return Set.copyOf(roles); }
+    public void lock(Instant until) { status = UserStatus.LOCKED; lockedUntil = until; tokenVersion++; }
+    public void unlock() { if (status == UserStatus.LOCKED) { status = UserStatus.ACTIVE; lockedUntil = null; tokenVersion++; } }
+    public void disable() { status = UserStatus.DISABLED; tokenVersion++; }
+    public void enable() { if (status == UserStatus.DISABLED) { status = UserStatus.ACTIVE; tokenVersion++; } }
 }

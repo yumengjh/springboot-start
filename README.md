@@ -78,5 +78,5 @@ APP_BOOTSTRAP_ADMIN_PASSWORD='请替换为强密码' \
 ## 当前重要限制
 
 - JWT 密钥当前每次启动自动生成，因此服务重启会让旧 Access Token 失效；生产外部密钥配置待完成。
-- 管理员用户列表、锁定/禁用、审计事件、IP 策略、真正限流与防爆破尚在实现。
+- 审计事件、IP 策略、真正限流与防爆破尚在实现。
 - 不包含 MySQL、SQL Server、Redis、邮件验证、OAuth、MFA 和前端。

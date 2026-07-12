@@ -32,4 +32,11 @@ users --< user_roles >-- roles --< role_permissions >-- permissions
 - `PUT /roles/{roleCode}/permissions/{permissionCode}`：给角色授予权限，需 `system:role:write`。
 - `DELETE /roles/{roleCode}/permissions/{permissionCode}`：移除角色权限，需 `system:role:write`。
 
-角色/权限创建、管理员用户列表、禁用、锁定和解锁接口尚未实现。
+角色与权限创建接口尚未实现。
+
+## 管理员用户管理
+
+- `GET /api/v1/admin/users`：列出用户，需 `system:user:read`。
+- `PATCH /api/v1/admin/users/{id}/status`：更新状态，需 `system:user:write`。请求体示例：`{"status":"DISABLED"}`。
+
+支持 `ACTIVE`、`LOCKED`、`DISABLED`。锁定默认持续 15 分钟；禁用或锁定会撤销该用户全部 Refresh Token，并递增 Token 版本。
