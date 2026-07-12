@@ -74,5 +74,6 @@ public class User extends AuditedEntity {
         this.tokenVersion++;
     }
     public void grant(Role role) { roles.add(role); }
+    public void revoke(Role role) { roles.remove(role); }
     public Set<Role> getRoles() { return Set.copyOf(roles); }
 }
