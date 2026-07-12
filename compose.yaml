@@ -24,10 +24,11 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: postgres
       SERVER_PORT: ${SERVER_PORT:-8080}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-starter}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-starter}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-local-only-change-me}
-      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET to externally supplied signing material}
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-starter}
+      DB_USERNAME: ${POSTGRES_USER:-starter}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-local-only-change-me}
+      APP_BOOTSTRAP_ADMIN_USERNAME: ${APP_BOOTSTRAP_ADMIN_USERNAME:-}
+      APP_BOOTSTRAP_ADMIN_PASSWORD: ${APP_BOOTSTRAP_ADMIN_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy

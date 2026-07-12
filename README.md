@@ -15,6 +15,8 @@
 默认使用 `./data/app.db`：
 
 ```bash
+cp .env.example .env
+# 编辑 .env，按需填写 APP_BOOTSTRAP_ADMIN_USERNAME 和 APP_BOOTSTRAP_ADMIN_PASSWORD
 ./mvnw spring-boot:run
 ```
 
@@ -24,12 +26,11 @@
 curl http://localhost:8080/actuator/health
 ```
 
-首次创建超级管理员时，在启动命令前提供环境变量；密码不会写入源码、配置文件或日志：
+`.env` 会被 Spring Boot 直接加载，适合保存启动期配置；密码不会写入源码、示例文件或日志：
 
 ```bash
-APP_BOOTSTRAP_ADMIN_USERNAME=admin \
-APP_BOOTSTRAP_ADMIN_PASSWORD='请替换为强密码' \
-./mvnw spring-boot:run
+APP_BOOTSTRAP_ADMIN_USERNAME=admin
+APP_BOOTSTRAP_ADMIN_PASSWORD=请替换为强密码
 ```
 
 若用户名不存在，服务会创建该用户并授予 `SUPER_ADMIN`。该初始化是幂等的。
