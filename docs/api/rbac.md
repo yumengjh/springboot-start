@@ -1,83 +1,35 @@
-# RBAC guide
+# RBAC 权限说明
 
-## Data model
-
-RBAC is database-backed and extensible:
+权限模型由数据库维护：
 
 ```text
 users --< user_roles >-- roles --< role_permissions >-- permissions
 ```
 
-Roles and permissions are records, not Java enums. Role codes and permission codes are
-unique. Permission codes are immutable and follow `resource:action`. The centralized
-authorization layer grants `SUPER_ADMIN` bypass behavior; controllers must not repeat
-special-case checks.
+角色和权限都不是 Java 枚举，后续可在数据库中扩展。权限编码使用 `资源:动作`，例如 `system:role:assign`。
 
-Initial roles are:
+## 内置角色与权限
 
-- `SUPER_ADMIN`
-- `ADMIN`
-- `USER`
+初始角色：`SUPER_ADMIN`、`ADMIN`、`USER`。`SUPER_ADMIN` 会获得当前所有内置权限；新注册用户会自动获得 `USER`。
 
-Initial permissions are:
+内置权限包括：
 
-- `system:user:read`, `system:user:write`
-- `system:role:read`, `system:role:write`, `system:role:assign`
-- `system:config:read`, `system:config:write`
+- `system:user:read`、`system:user:write`
+- `system:role:read`、`system:role:write`、`system:role:assign`
+- `system:config:read`、`system:config:write`
 - `system:audit:read`
-- `example:announcement:read`, `example:announcement:write`,
-  `example:announcement:delete`
+- `example:announcement:read`、`example:announcement:write`、`example:announcement:delete`
 
-Seed execution is idempotent. The seed's role-to-permission assignments in the
-implemented initializer are authoritative; do not assume every named role receives
-every permission.
+权限会写入新签发的 JWT；修改角色或权限后，用户应重新登录或刷新 Token。
 
-## API and enforcement
+## 已实现接口
 
-Implemented administration routes are `GET /api/v1/rbac/roles`, user-role assignment
-and removal at `/api/v1/rbac/users/{userId}/roles/{roleCode}`, and role-permission
-assignment/removal at `/api/v1/rbac/roles/{roleCode}/permissions/{permissionCode}`.
-They use `system:role:read`, `system:role:assign`, and `system:role:write`.
-User listing, account-status management, and role/permission creation remain pending.
+以下接口均位于 `/api/v1/rbac`，且需要对应的 JWT 权限：
 
-The identity API provides role/permission CRUD, assignment operations, paginated user
-listing, account-status operations, and forced session revocation. Exact route suffixes
-and DTO shapes are published in `/v3/api-docs`.
+- `GET /roles`：查看角色及其权限，需 `system:role:read`。
+- `PUT /users/{userId}/roles/{roleCode}`：给用户分配角色，需 `system:role:assign`。
+- `DELETE /users/{userId}/roles/{roleCode}`：移除用户角色，需 `system:role:assign`。
+- `PUT /roles/{roleCode}/permissions/{permissionCode}`：给角色授予权限，需 `system:role:write`。
+- `DELETE /roles/{roleCode}/permissions/{permissionCode}`：移除角色权限，需 `system:role:write`。
 
-Access tokens contain the user's effective permission set. Spring authorities are
-derived from that set. A protected method uses the shared evaluator, for example:
-
-```java
-@PreAuthorize("@permissionEvaluator.has('system:user:read')")
-public PageResponse<UserResponse> listUsers(Pageable pageable) {
-    // delegate to the application service
-}
-```
-
-Enforce business authorization at the application boundary as well as the HTTP entry
-point when the service can be invoked elsewhere. Expected HTTP behavior is `401` for
-anonymous requests and `403` for an authenticated principal without permission.
-
-Removing a permission affects newly issued access tokens; clients should refresh or
-log in again. For urgent containment, also revoke the user's sessions. Role deletion is
-rejected while it remains assigned unless assignments are explicitly removed in the
-same service transaction.
-
-## Add a module permission
-
-For a new `billing` module with invoice mutation:
-
-1. Choose a stable code such as `billing:invoice:write`; do not encode a role name in
-   the permission.
-2. Add the permission to the module/security seed using an idempotent insert or lookup.
-3. Assign it to the intended seeded roles explicitly. Do not silently broaden `USER`.
-4. Protect controller and application-service mutations with
-   `@permissionEvaluator.has('billing:invoice:write')`.
-5. Add the permission and required bearer authentication to OpenAPI.
-6. Test anonymous `401`, insufficient-permission `403`, allowed behavior, removal on a
-   newly issued token, and centralized `SUPER_ADMIN` behavior.
-7. If administration APIs expose permission catalogs, verify the new record appears
-   without exposing user credentials or refresh hashes.
-
-Keep role/permission repositories inside `identity`. A business module depends on the
-public permission-evaluation contract, not those repositories.
+角色/权限创建、管理员用户列表、禁用、锁定和解锁接口尚未实现。

@@ -1,85 +1,24 @@
-# Runtime settings operations
+# 运行时服务配置
 
-## Ownership boundary
+运行时配置只管理后端服务治理，不管理业务开关。数据库、JWT 密钥、CORS 来源、可信代理和初始管理员密码都属于启动配置，修改后必须重启。
 
-The `system` module owns service-governance settings only: general rate limiting,
-brute-force protection, persistent IP access policy, request logging, and security
-auditing. IP policy includes temporary/permanent deny rules and optional allow rules
-for protected administration endpoints. These runtime governance records are distinct
-from trusted proxy networks: proxy CIDRs decide whether forwarded client-IP headers can
-be trusted and remain startup configuration. Use the implemented IP-rule API and
-OpenAPI for route and DTO details; the design does not specify them.
+## 已实现接口
 
-JWT keys, database connections, trusted proxy networks, CORS origins, and bootstrap
-credentials are startup configuration and require a restart/deployment.
+- `GET /api/v1/system/runtime-config`：读取当前配置。
+- `PUT /api/v1/system/runtime-config/{key}`：更新配置，请求体为 `{"value":"..."}`。
 
-Business behavior stays with its owning module. Self-registration policy belongs to
-`identity`; announcement publication policy belongs to `example`. Modules may reuse
-the common typed-setting mechanism but own their keys, validation, API, and permission.
+当前接口要求已登录。RBAC 权限控制、修改审计记录和操作日志将在 security 模块中继续接入。
 
-## Typed key registry
+## 内置键
 
-Implemented routes are `GET /api/v1/system/runtime-config` and
-`PUT /api/v1/system/runtime-config/{key}` with `{"value":"..."}`. The current
-implementation initializes rate-limit, brute-force, and audit settings, then refreshes
-the in-memory snapshot after updates. Enforcement and audit-event persistence are next.
+- `security.rate-limit.enabled`
+- `security.rate-limit.capacity`
+- `security.rate-limit.window-seconds`
+- `security.brute-force.enabled`
+- `security.brute-force.failure-threshold`
+- `security.brute-force.lock-seconds`
+- `security.audit.enabled`
 
-The registry defines keys for:
+服务启动时会为缺失项写入默认值，并将配置缓存为内存快照。更新成功后会立即刷新快照；限流和防爆破策略后续直接读取该快照。
 
-- general API rate-limit capacity and window;
-- brute-force enabled state, failure threshold, observation window, and lock duration;
-- request logging enabled state; and
-- security auditing enabled state.
-
-Each `SettingKey<T>` declares its Java type, default value, parser, validator, and
-whether it applies immediately. Supported validation includes integer, boolean,
-duration, and CIDR values. Consult `GET /api/v1/system/settings` and OpenAPI for exact
-key strings, JSON shapes, defaults, and ranges; these names and numeric limits are not
-specified by the design and must not be guessed.
-
-Reading settings requires `system:config:read`; updating them under
-`/api/v1/system/settings` requires `system:config:write`. Audit search is paginated at
-`/api/v1/system/audit-events` and requires `system:audit:read`.
-
-## Update and audit flow
-
-```mermaid
-flowchart TD
-    A[Authorize update] --> B[Parse and validate]
-    B --> C[Persist value and audit]
-    C --> D[Commit transaction]
-    D --> E[Reload immutable snapshot]
-    E --> F[Atomically replace cache]
-```
-
-An update stores normalized JSON using optimistic versioning and writes sanitized
-before/after audit metadata in the same transaction. Only an after-commit callback
-reloads and swaps the immutable snapshot. Unknown, malformed, or out-of-range values
-are rejected; rollback leaves the previous in-memory snapshot active, so invalid values
-never partially apply.
-
-Operational procedure:
-
-1. Read the current value and record version through the settings API.
-2. Make one bounded change using the documented update DTO.
-3. Confirm the API response and corresponding audit event (actor, action, target,
-   result, timestamp, trace ID, and sanitized metadata).
-4. Exercise the affected behavior from a non-privileged test client.
-5. To roll back, submit the recorded prior value as another audited update.
-
-Avoid toggling security auditing merely to reduce volume. Logs and audit metadata never
-contain passwords, raw tokens, authorization headers, or sensitive bodies.
-
-## Local-counter limitation and Redis extension
-
-Rate-limit and brute-force counters are bounded, thread-safe in-memory state in the
-first release. They disappear on restart and are not coordinated among replicas.
-Persistent IP rules and account locks survive restarts, but per-instance counters mean
-an effective cluster-wide threshold can be multiplied by the number of replicas.
-
-For strict multi-instance enforcement, implement the narrow rate-limit and brute-force
-counter-store interfaces with Redis (or another atomic shared store). Preserve key
-normalization, expiration/window semantics, maximum cardinality controls, and atomic
-increment/check behavior. Wire the adapter through configuration without changing
-controllers or policies, then add concurrency, expiry, outage, and multi-instance
-integration tests. Redis is an extension point, not included in this starter.
+当前仅支持布尔值和有范围限制的整数值。Redis 分布式计数、IP 黑白名单、真正限流、防爆破执行和审计事件属于下一阶段。

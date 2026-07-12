@@ -1,86 +1,41 @@
-# Authentication and session guide
+# 认证与会话说明
 
-## Contract
+所有认证接口都在 `/api/v1/auth` 下：
 
-Authentication endpoints are `POST /api/v1/auth/register`, `login`, `refresh`, and
-`logout`. Registration accepts `username`, `displayName`, and `password`; login accepts
-`username` and `password`; refresh/logout accept `refreshToken`.
+- `POST /register`：注册，传入 `username`、`displayName`、`password`。
+- `POST /login`：登录，传入 `username`、`password`。
+- `POST /refresh`：刷新令牌，传入 `{"refreshToken":"..."}`。
+- `POST /logout`：当前设备登出，传入 `{"refreshToken":"..."}`。
 
-Registration accepts a username, display name, and password. Usernames match
-`[A-Za-z0-9_.-]{3,32}` and normalize with `Locale.ROOT`; display names are 1–80
-characters and passwords are 10–128 characters. Passwords are encoded through Spring
-Security's `DelegatingPasswordEncoder` (initially BCrypt) and are never returned.
+用户名必须匹配 `[A-Za-z0-9_.-]{3,32}`，服务端会转换为小写。显示名最长 80 个字符；密码长度为 10–128。密码通过 Spring Security 的 DelegatingPasswordEncoder 加密，当前实际使用 BCrypt，响应永远不会返回密码哈希。
 
-Login returns:
+## Token
 
-- a short-lived RSA SHA-256 signed JWT access token; and
-- an opaque refresh token backed only by a SHA-256 hash in the database.
+登录和刷新成功后都会返回：
 
-Access tokens expire after 15 minutes and refresh sessions expire after 30 days.
+```json
+{
+  "accessToken": "RSA 签名的 JWT",
+  "refreshToken": "一次性不透明令牌",
+  "tokenType": "Bearer",
+  "expiresIn": 900
+}
+```
 
-## Access tokens
-
-Send the access token on authenticated requests:
+Access Token 有效期为 15 分钟。调用受保护接口时使用：
 
 ```http
 Authorization: Bearer <access-token>
 ```
 
-JWT claims include issuer, user ID subject, username, effective permissions, token
-version, issuance/expiry times, and a unique token ID. Access tokens are not persisted.
-Permission changes become visible on the next issued access token; an already-issued
-token retains its embedded authorities until it expires or is otherwise rejected.
+JWT 包含用户 ID、用户名、令牌版本和有效权限列表。Refresh Token 有效期为 30 天，数据库只保存它的 SHA-256 哈希，绝不保存原文。
 
-## Refresh rotation and reuse
+## 刷新、复用与登出
 
-Every successful refresh consumes the presented token and returns a successor. Clients
-must atomically replace the old value. The server stores only a hash, plus family,
-user, expiry, consumption/revocation state, and sanitized client metadata.
+每次刷新都会消耗旧 Refresh Token，并返回一组新的 Access/Refresh Token；客户端必须原子地替换旧值。旧 Token 被再次使用时，服务会撤销该 Token 家族并返回 `401 AUTHENTICATION_REQUIRED`。
 
-If an already-consumed token is presented, the server returns the stable
-`AUTHENTICATION_REQUIRED` and revokes every session in that token family. Treat this
-as a possible credential theft event: discard the entire local session and require a
-new login. Do not retry the stale token.
+登出会撤销传入的 Refresh Token。修改密码会撤销该用户所有 Refresh Token。全设备登出、管理员强制下线和账户禁用联动仍待实现。
 
-Current-device logout revokes the current refresh session/family as implemented.
-All-device logout revokes all refresh sessions for the user. Administrator-forced
-revocation, password changes, and account disablement also revoke sessions.
+## 密钥边界
 
-## RSA key configuration and rotation
-
-Production uses an RSA private/public key pair supplied through configured values or
-mounted secret files. No usable production key belongs in Git, an image layer, Compose,
-logs, or documentation. Restrict private-key file access to the application identity;
-only the public key may be distributed to verifiers.
-
-Ephemeral RSA generation is local-only and requires both the `local` profile and
-`app.security.jwt.allow-ephemeral-key=true`. Tokens become invalid after restart, so it
-is unsuitable for shared or production environments.
-
-For rotation:
-
-1. Generate the new pair in the deployment's secret manager.
-2. Arrange a verification overlap if the implemented key-selection configuration
-   supports multiple public keys/key IDs; otherwise plan for existing access tokens to
-   expire at cutover.
-3. Deploy signers with the new private key and the required verification material.
-4. After the maximum access-token lifetime, remove the old verification key.
-5. Test login, access-token validation, and refresh before completing rollout.
-
-The starter is not a full OAuth2 authorization server. Do not infer discovery, client
-registration, authorization-code, or introspection endpoints.
-
-## Client storage guidance
-
-- Browser applications may prefer a Secure, HttpOnly, SameSite cookie for refresh
-  tokens only when the server implements a compatible cookie transport or a
-  backend-for-frontend performs refresh on the browser's behalf. Browser JavaScript
-  cannot read an HttpOnly cookie to populate a JSON request. Otherwise, follow the
-  actual OpenAPI token-transport contract. Keep access tokens short-lived and in
-  memory; avoid `localStorage` for bearer credentials.
-- Native clients should use platform secure storage (Keychain/Keystore equivalents).
-- Never log tokens, put them in URLs, analytics, crash reports, or error messages.
-- Serialize refresh operations per session. Concurrent use of one refresh token can
-  make a legitimate request look like reuse and revoke the family.
-- On `401`, distinguish an expired access token from refresh failure; allow at most one
-  coordinated refresh before requiring login.
+当前实现会在每次应用启动时生成 RSA 密钥对，因此重启后原 Access Token 失效。生产环境外部密钥（环境变量或挂载文件）尚未接入，当前方式仅适用于本地开发与模板验证，不能直接用于生产部署。
