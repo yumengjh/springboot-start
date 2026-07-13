@@ -12,8 +12,8 @@
     p { color: #5b6778; margin: 8px 0 0; }
     section { background: #fff; border: 1px solid #dce3ed; border-radius: 12px; padding: 18px; margin-top: 16px; box-shadow: 0 2px 8px rgb(24 34 48 / 4%); }
     label { display: block; color: #4b596b; font-size: 12px; font-weight: 650; margin: 8px 0 4px; }
-    input, select, button { border-radius: 7px; border: 1px solid #cbd5e1; min-height: 36px; font: inherit; }
-    input, select { width: 100%; padding: 7px 9px; background: #fff; } input:focus, select:focus { outline: 2px solid #93c5fd; border-color: #60a5fa; }
+    input, select, textarea, button { border-radius: 7px; border: 1px solid #cbd5e1; min-height: 36px; font: inherit; }
+    input, select, textarea { width: 100%; padding: 7px 9px; background: #fff; } textarea { min-height: 100px; resize: vertical; } input:focus, select:focus, textarea:focus { outline: 2px solid #93c5fd; border-color: #60a5fa; }
     button { cursor: pointer; padding: 7px 11px; color: #fff; background: #2563eb; border-color: #2563eb; font-weight: 600; } button:hover { background: #1d4ed8; } button.secondary { color: #334155; background: #fff; border-color: #cbd5e1; } button.danger { background: #dc2626; border-color: #dc2626; } button:disabled { cursor: not-allowed; opacity: .55; }
     .topbar, .toolbar, .form-grid, .two-column { display: grid; gap: 10px; } .topbar { grid-template-columns: 1fr minmax(220px, 360px); align-items: end; } .form-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .two-column { grid-template-columns: minmax(430px, 1fr) minmax(360px, .85fr); align-items: start; }
     .toolbar { display: flex; flex-wrap: wrap; align-items: center; margin-bottom: 12px; } .toolbar button { width: auto; } .count { margin-left: auto; color: #475569; font-weight: 650; }
@@ -97,10 +97,19 @@
 
   <section><h2>系统审计</h2><p class="muted">当前记录运行时配置变更；需要 <code>system:audit:read</code> 权限。</p><div class="toolbar"><button class="secondary" onclick="loadAuditEvents()">读取最近 20 条审计事件</button></div></section>
 
+  <section>
+    <h2>公告示例模块</h2><p class="muted">公开列表只返回已发布公告。创建、编辑、发布和删除需要对应的 <code>example:announcement:*</code> 权限；点击列表项后可编辑。</p>
+    <div class="toolbar"><button class="secondary" onclick="loadAnnouncements()">读取公开公告</button><button class="secondary" onclick="loadAnnouncementById()">按 ID 读取草稿/详情</button><span id="announcementCount" class="count">公告：未加载</span></div>
+    <div style="overflow:auto"><table><thead><tr><th>标题</th><th>发布状态</th><th>发布时间</th><th>ID</th></tr></thead><tbody id="announcementRows"><tr><td colspan="4" class="muted">点击“读取公开公告”开始。</td></tr></tbody></table></div>
+    <div class="form-grid"><div><label for="announcementId">公告 ID（编辑/按 ID 查询）</label><input id="announcementId" placeholder="选择列表项或粘贴 ID"></div><div><label for="announcementTitle">标题</label><input id="announcementTitle" placeholder="公告标题"></div><div><label for="announcementPublished">发布状态</label><select id="announcementPublished"><option value="true">发布</option><option value="false">撤回为草稿</option></select></div></div>
+    <label for="announcementContent">内容</label><textarea id="announcementContent" placeholder="公告正文"></textarea>
+    <div class="toolbar"><button onclick="createAnnouncement()">创建草稿</button><button class="secondary" onclick="updateAnnouncement()">保存修改</button><button class="secondary" onclick="setAnnouncementPublication()">更新发布状态</button><button class="danger" onclick="deleteAnnouncement()">删除公告</button></div>
+  </section>
+
   <section><h2>最近响应</h2><pre id="out">等待请求…</pre></section>
 
   <script>
-    let accessToken = '', refreshTokenValue = '', users = [], roles = [], selectedUserId = '';
+    let accessToken = '', refreshTokenValue = '', users = [], roles = [], announcements = [], selectedUserId = '';
     const permissionsByGroup = {
       '用户管理': ['system:user:read', 'system:user:write'],
       '角色与授权': ['system:role:read', 'system:role:write', 'system:role:assign'],
@@ -128,7 +137,7 @@
       } catch (error) { showNotice(`无法连接服务：${error.message}`, 'error'); showResponse(method, path, 'NETWORK_ERROR', error.message); return { ok: false }; }
     }
 
-    async function login() { const result = await api('/api/v1/auth/login', 'POST', { username: $('username').value, password: $('password').value }); if (!result.ok || !result.data?.accessToken) return; accessToken = result.data.accessToken; refreshTokenValue = result.data.refreshToken; showNotice('登录成功，正在加载用户与 RBAC 数据。', 'ok'); await Promise.all([loadUsers(), loadRoles()]); }
+    async function login() { const result = await api('/api/v1/auth/login', 'POST', { username: $('username').value, password: $('password').value }); if (!result.ok || !result.data?.accessToken) return; accessToken = result.data.accessToken; refreshTokenValue = result.data.refreshToken; showNotice('登录成功，正在加载用户、RBAC 与公开公告。', 'ok'); await Promise.all([loadUsers(), loadRoles(), loadAnnouncements()]); }
     async function register() { await api('/api/v1/auth/register', 'POST', { username: $('username').value, displayName: $('displayName').value, password: $('password').value }); }
     async function refreshToken() { const result = await api('/api/v1/auth/refresh', 'POST', { refreshToken: refreshTokenValue }); if (result.ok && result.data?.accessToken) { accessToken = result.data.accessToken; refreshTokenValue = result.data.refreshToken; showNotice('Token 已刷新。', 'ok'); } }
     async function logout() { await api('/api/v1/auth/logout', 'POST', { refreshToken: refreshTokenValue }); accessToken = ''; refreshTokenValue = ''; users = []; roles = []; selectedUserId = ''; renderUsers(); renderRoles(); showNotice('已登出，页面内存中的 Token 已清除。'); }
@@ -162,6 +171,16 @@
     async function loadIpPolicies() { const values = await runtimeValues(); if (!values) return; $('ipAllowList').value = values['security.ip.allow-list'] || ''; $('ipDenyList').value = values['security.ip.deny-list'] || ''; showNotice('IP 策略已读取。', 'ok'); }
     async function saveIpPolicies() { const allow = await api('/api/v1/system/runtime-config/security.ip.allow-list', 'PUT', { value: $('ipAllowList').value }, true); if (!allow.ok) return; const deny = await api('/api/v1/system/runtime-config/security.ip.deny-list', 'PUT', { value: $('ipDenyList').value }, true); if (deny.ok) showNotice('IP 策略已热更新。', 'ok'); }
     async function loadAuditEvents() { const result = await api('/api/v1/system/audit-events?size=20'); if (result.ok) showNotice(`已读取 ${result.data?.items?.length || 0} 条审计事件。`, 'ok'); }
+    async function loadAnnouncements() { const result = await api('/api/v1/announcements'); if (!result.ok || !Array.isArray(result.data)) return; announcements = result.data; renderAnnouncements(); }
+    function renderAnnouncements() { $('announcementCount').textContent = `公告：${announcements.length} 条公开内容`; $('announcementRows').innerHTML = announcements.length ? announcements.map(item => `<tr onclick="selectAnnouncement('${escapeHtml(item.id)}')"><td>${escapeHtml(item.title)}</td><td>${item.published ? '<span class="badge ACTIVE">已发布</span>' : '<span class="badge LOCKED">草稿</span>'}</td><td>${escapeHtml(item.publishedAt || '-')}</td><td class="id" title="${escapeHtml(item.id)}">${escapeHtml(item.id)}</td></tr>`).join('') : '<tr><td colspan="4" class="muted">暂无公开公告。</td></tr>'; }
+    function fillAnnouncement(item) { $('announcementId').value = item.id || ''; $('announcementTitle').value = item.title || ''; $('announcementContent').value = item.content || ''; $('announcementPublished').value = String(Boolean(item.published)); }
+    async function selectAnnouncement(id) { $('announcementId').value = id; const result = await api(`/api/v1/announcements/${encodeURIComponent(id)}`); if (result.ok) { fillAnnouncement(result.data); showNotice('公告详情已加载，可修改后保存。', 'ok'); } }
+    async function loadAnnouncementById() { const id = $('announcementId').value.trim(); if (!id) return showNotice('请先填写公告 ID。', 'error'); const result = await api(`/api/v1/announcements/${encodeURIComponent(id)}`); if (result.ok) fillAnnouncement(result.data); }
+    function announcementPayload() { return { title: $('announcementTitle').value, content: $('announcementContent').value }; }
+    async function createAnnouncement() { const result = await api('/api/v1/announcements', 'POST', announcementPayload()); if (result.ok) { fillAnnouncement(result.data); showNotice('已创建公告草稿。', 'ok'); } }
+    async function updateAnnouncement() { const id = $('announcementId').value.trim(); if (!id) return showNotice('请先填写或选择公告 ID。', 'error'); const result = await api(`/api/v1/announcements/${encodeURIComponent(id)}`, 'PUT', announcementPayload()); if (result.ok) { fillAnnouncement(result.data); showNotice('公告内容已更新。', 'ok'); } }
+    async function setAnnouncementPublication() { const id = $('announcementId').value.trim(); if (!id) return showNotice('请先填写或选择公告 ID。', 'error'); const published = $('announcementPublished').value; const result = await api(`/api/v1/announcements/${encodeURIComponent(id)}/publication?published=${published}`, 'PUT'); if (result.ok) { fillAnnouncement(result.data); await loadAnnouncements(); showNotice(published === 'true' ? '公告已发布。' : '公告已撤回为草稿。', 'ok'); } }
+    async function deleteAnnouncement() { const id = $('announcementId').value.trim(); if (!id) return showNotice('请先填写或选择公告 ID。', 'error'); if (!confirm('确认删除该公告？此操作不可恢复。')) return; const result = await api(`/api/v1/announcements/${encodeURIComponent(id)}`, 'DELETE'); if (result.ok) { $('announcementId').value = ''; $('announcementTitle').value = ''; $('announcementContent').value = ''; await loadAnnouncements(); showNotice('公告已删除。', 'ok'); } }
   </script>
 </body>
 </html>

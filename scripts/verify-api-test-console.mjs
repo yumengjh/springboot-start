@@ -14,3 +14,6 @@ assert.match(page, /function saveRolePermissions\(/);
 assert.match(page, /id="endpointRatePatterns"/);
 assert.match(page, /id="ipAllowList"/);
 assert.match(page, /function loadAuditEvents\(/);
+assert.match(page, /id="announcementTitle"/);
+assert.match(page, /function createAnnouncement\(/);
+assert.match(page, /function setAnnouncementPublication\(/);
