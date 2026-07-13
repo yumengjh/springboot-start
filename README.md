@@ -52,6 +52,7 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=请替换为强密码
 - [认证与会话](docs/api/authentication.md)
 - [RBAC 权限](docs/api/rbac.md)
 - [运行时服务配置](docs/operations/runtime-settings.md)
+- [公告示例模块](docs/api/announcements.md)
 - [项目目标与进度](docs/PROJECT_STATUS.md)
 - [部署说明](docs/operations/deployment.md)
 
@@ -70,6 +71,7 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=请替换为强密码
 | RBAC | `/api/v1/rbac/**` |
 | 运行时配置 | `/api/v1/system/runtime-config` |
 | 系统审计 | `/api/v1/system/audit-events` |
+| 公告示例 | `/api/v1/announcements` |
 | 健康检查 | `/actuator/health` |
 | OpenAPI | `/v3/api-docs`、`/swagger-ui/index.html` |
 

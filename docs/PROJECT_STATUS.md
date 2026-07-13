@@ -34,6 +34,8 @@ Until domain entities exist, `common/entity` contains only reusable JPA base typ
 
 ## Completed
 
+- 公告示例模块：公开已发布列表、RBAC 保护的草稿读取/创建/修改/发布/删除，以及对应审计事件。
+
 - Java 21, Spring Boot 4.1, Maven Wrapper, local and PostgreSQL profiles.
 - Portable Liquibase changelogs for users, roles, permissions, refresh sessions, runtime settings, IP rules, audits, and announcements.
 - SQLite foreign-key enforcement and PostgreSQL/SQLite migration test coverage.
