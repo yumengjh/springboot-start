@@ -17,6 +17,8 @@ public class UserAdministrationService {
     private final UserRepository users; private final TokenService tokens;
     public UserAdministrationService(UserRepository users, TokenService tokens) { this.users = users; this.tokens = tokens; }
     @Transactional(readOnly = true) public List<AdminUserResponse> list() { return users.findAll().stream().map(AdminUserResponse::from).toList(); }
+    @Transactional(readOnly = true) public AdminUserResponse get(String id) { return AdminUserResponse.from(users.findById(id).orElseThrow(ApiException::notFound)); }
+    @Transactional public void revokeSessions(String id) { users.findById(id).orElseThrow(ApiException::notFound); tokens.revokeAllForUser(id); }
     @Transactional public AdminUserResponse changeStatus(String id, UserStatus status) {
         User user = users.findById(id).orElseThrow(ApiException::notFound);
         switch (status) { case ACTIVE -> { user.enable(); user.unlock(); } case DISABLED -> user.disable(); case LOCKED -> user.lock(Instant.now().plus(15, ChronoUnit.MINUTES)); }

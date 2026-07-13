@@ -8,6 +8,7 @@ import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +23,10 @@ public class UserAdministrationController {
     private final UserAdministrationService users;
     public UserAdministrationController(UserAdministrationService users) { this.users = users; }
     @GetMapping @PreAuthorize("hasAuthority('system:user:read')") public List<AdminUserResponse> list() { return users.list(); }
+    @GetMapping("/{id}") @PreAuthorize("hasAuthority('system:user:read')")
+    public AdminUserResponse get(@PathVariable @Pattern(regexp = "[0-9a-fA-F-]{36}") String id) { return users.get(id); }
     @PatchMapping("/{id}/status") @PreAuthorize("hasAuthority('system:user:write')")
     public AdminUserResponse updateStatus(@PathVariable @Pattern(regexp = "[0-9a-fA-F-]{36}") String id, @Valid @RequestBody UpdateUserStatusRequest request) { return users.changeStatus(id, request.status()); }
+    @PostMapping("/{id}/sessions/revoke") @PreAuthorize("hasAuthority('system:user:write')")
+    public org.springframework.http.ResponseEntity<Void> revokeSessions(@PathVariable @Pattern(regexp = "[0-9a-fA-F-]{36}") String id) { users.revokeSessions(id); return org.springframework.http.ResponseEntity.noContent().build(); }
 }

@@ -27,6 +27,7 @@ users --< user_roles >-- roles --< role_permissions >-- permissions
 以下接口均位于 `/api/v1/rbac`，且需要对应的 JWT 权限：
 
 - `GET /roles`：查看角色及其权限，需 `system:role:read`。
+- `GET /permissions`：查看可分配的权限目录，需 `system:role:read`。
 - `PUT /users/{userId}/roles/{roleCode}`：给用户分配角色，需 `system:role:assign`。
 - `DELETE /users/{userId}/roles/{roleCode}`：移除用户角色，需 `system:role:assign`。
 - `PUT /roles/{roleCode}/permissions/{permissionCode}`：给角色授予权限，需 `system:role:write`。
@@ -40,5 +41,7 @@ users --< user_roles >-- roles --< role_permissions >-- permissions
 
 - `GET /api/v1/admin/users`：列出用户，需 `system:user:read`。
 - `PATCH /api/v1/admin/users/{id}/status`：更新状态，需 `system:user:write`。请求体示例：`{"status":"DISABLED"}`。
+- `GET /api/v1/admin/users/{id}`：查看单用户详情，需 `system:user:read`。
+- `POST /api/v1/admin/users/{id}/sessions/revoke`：撤销该用户全部 Refresh Session，需 `system:user:write`，返回 `204`。
 
 支持 `ACTIVE`、`LOCKED`、`DISABLED`。锁定默认持续 15 分钟；禁用或锁定会撤销该用户全部 Refresh Token，并递增 Token 版本。

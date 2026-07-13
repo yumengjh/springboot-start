@@ -19,6 +19,7 @@ public class RbacService {
     public RbacService(RoleRepository roles, PermissionRepository permissions, UserRepository users) { this.roles = roles; this.permissions = permissions; this.users = users; }
     @Transactional public void grantDefaultUserRole(User user) { user.grant(roles.findByCode("USER").orElseThrow()); }
     @Transactional(readOnly = true) public java.util.List<RoleResponse> listRoles() { return roles.findAll().stream().map(RoleResponse::from).toList(); }
+    @Transactional(readOnly = true) public java.util.List<com.yumg.starter.modules.rbac.api.dto.PermissionResponse> listPermissions() { return permissions.findAll().stream().map(com.yumg.starter.modules.rbac.api.dto.PermissionResponse::from).toList(); }
     @Transactional public void assignRole(String userId, String roleCode) { user(userId).grant(role(roleCode)); }
     @Transactional public void removeRole(String userId, String roleCode) { user(userId).revoke(role(roleCode)); }
     @Transactional public void grantPermission(String roleCode, String permissionCode) { role(roleCode).grant(permission(permissionCode)); }
