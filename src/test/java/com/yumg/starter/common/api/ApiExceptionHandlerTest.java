@@ -56,6 +56,19 @@ class ApiExceptionHandlerTest {
     }
 
     @Test
+    void unknownJsonFieldUsesDedicatedStableErrorCode() {
+        var handler = new ApiExceptionHandler();
+        var unknown = new tools.jackson.databind.exc.UnrecognizedPropertyException(
+                null, "unknown field", null, TestRequest.class, "extra", java.util.List.of());
+
+        var response = handler.malformedJson(
+                new org.springframework.http.converter.HttpMessageNotReadableException("bad body", unknown,
+                        new org.springframework.mock.http.MockHttpInputMessage(new byte[0])));
+
+        assertError(response, 400, "UNKNOWN_FIELD");
+    }
+
+    @Test
     void rateLimitUsesStableCodeAndStatus() throws Exception {
         mvc.perform(post("/limited"))
             .andExpect(status().isTooManyRequests())
