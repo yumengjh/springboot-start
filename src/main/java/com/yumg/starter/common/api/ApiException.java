@@ -15,6 +15,7 @@ public class ApiException extends RuntimeException {
     public static ApiException conflict() {
         return new ApiException(ApiErrorCode.CONFLICT);
     }
+    public static ApiException lastSuperAdminProtected() { return new ApiException(ApiErrorCode.LAST_SUPER_ADMIN_PROTECTED); }
 
     public static ApiException rateLimited() {
         return new ApiException(ApiErrorCode.RATE_LIMITED);

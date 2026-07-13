@@ -21,6 +21,9 @@ public class UserAdministrationService {
     @Transactional public void revokeSessions(String id) { users.findById(id).orElseThrow(ApiException::notFound); tokens.revokeAllForUser(id); }
     @Transactional public AdminUserResponse changeStatus(String id, UserStatus status) {
         User user = users.findById(id).orElseThrow(ApiException::notFound);
+        if (status != UserStatus.ACTIVE && user.isSuperAdmin() && users.countByRoles_Code("SUPER_ADMIN") <= 1) {
+            throw ApiException.lastSuperAdminProtected();
+        }
         switch (status) { case ACTIVE -> { user.enable(); user.unlock(); } case DISABLED -> user.disable(); case LOCKED -> user.lock(Instant.now().plus(15, ChronoUnit.MINUTES)); }
         tokens.revokeAllForUser(id);
         return AdminUserResponse.from(user);

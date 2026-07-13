@@ -22,6 +22,8 @@ users --< user_roles >-- roles --< role_permissions >-- permissions
 
 权限会写入新签发的 JWT；修改角色或权限后，用户应重新登录或刷新 Token。
 
+角色或权限发生变更时，受影响用户的 Refresh Session 会被撤销且 token version 递增，旧 JWT 会立即失效。系统拒绝禁用、锁定或移除最后一个 `SUPER_ADMIN`，并返回 `409 LAST_SUPER_ADMIN_PROTECTED`。
+
 ## 已实现接口
 
 以下接口均位于 `/api/v1/rbac`，且需要对应的 JWT 权限：

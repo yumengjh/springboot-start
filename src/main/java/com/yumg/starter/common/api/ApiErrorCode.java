@@ -16,6 +16,7 @@ public enum ApiErrorCode {
     OPTIMISTIC_LOCK_CONFLICT(HttpStatus.CONFLICT, "The resource was modified by another request"),
     NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),
     CONFLICT(HttpStatus.CONFLICT, "The request conflicts with existing data"),
+    LAST_SUPER_ADMIN_PROTECTED(HttpStatus.CONFLICT, "The last super administrator cannot be removed or disabled"),
     RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "Too many requests"),
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported media type"),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "HTTP method is not allowed for this resource"),
