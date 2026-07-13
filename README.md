@@ -86,6 +86,8 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=请替换为强密码
 
 错误响应使用 `code`、`message`、`traceId`、`violations`、`timestamp`。认证、授权、限流和 Controller 内异常共用这一错误结构；客户端排查时应携带 `traceId`。
 
+请求 DTO 使用 Bean Validation，并启用严格 JSON 反序列化：未知字段会返回 `400 UNKNOWN_FIELD`，不会被静默忽略。路径中的用户 ID、角色和权限编码也会做格式校验。
+
 ## 构建与测试
 
 ```bash
