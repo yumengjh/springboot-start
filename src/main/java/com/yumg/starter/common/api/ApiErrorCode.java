@@ -19,6 +19,7 @@ public enum ApiErrorCode {
     LAST_SUPER_ADMIN_PROTECTED(HttpStatus.CONFLICT, "The last super administrator cannot be removed or disabled"),
     RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "Too many requests"),
     ENDPOINT_DISABLED(HttpStatus.SERVICE_UNAVAILABLE, "This endpoint is temporarily disabled"),
+    IP_ACCESS_DENIED(HttpStatus.FORBIDDEN, "Client IP is not allowed"),
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported media type"),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "HTTP method is not allowed for this resource"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");

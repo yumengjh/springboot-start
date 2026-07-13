@@ -15,17 +15,19 @@ import com.yumg.starter.modules.security.application.AuditService;
 
 @Service
 public class RuntimeSettingService {
-    private static final Map<String, Definition> DEFINITIONS = Map.of(
-            "security.rate-limit.enabled", new Definition("BOOLEAN", "true", 0, 0),
-            "security.rate-limit.capacity", new Definition("INTEGER", "120", 1, 10000),
-            "security.rate-limit.window-seconds", new Definition("INTEGER", "60", 1, 3600),
-            "security.brute-force.enabled", new Definition("BOOLEAN", "true", 0, 0),
-            "security.brute-force.failure-threshold", new Definition("INTEGER", "5", 3, 20),
-            "security.brute-force.lock-seconds", new Definition("INTEGER", "900", 60, 86400),
-            "security.audit.enabled", new Definition("BOOLEAN", "true", 0, 0),
-            "security.cors.allowed-origins", new Definition("STRING", "*", 0, 0),
-            "security.cors.allowed-methods", new Definition("STRING", "GET,POST,PUT,PATCH,DELETE,OPTIONS", 0, 0),
-            "security.endpoint.disabled-patterns", new Definition("STRING", "", 0, 0));
+    private static final Map<String, Definition> DEFINITIONS = Map.ofEntries(
+            Map.entry("security.rate-limit.enabled", new Definition("BOOLEAN", "true", 0, 0)),
+            Map.entry("security.rate-limit.capacity", new Definition("INTEGER", "120", 1, 10000)),
+            Map.entry("security.rate-limit.window-seconds", new Definition("INTEGER", "60", 1, 3600)),
+            Map.entry("security.brute-force.enabled", new Definition("BOOLEAN", "true", 0, 0)),
+            Map.entry("security.brute-force.failure-threshold", new Definition("INTEGER", "5", 3, 20)),
+            Map.entry("security.brute-force.lock-seconds", new Definition("INTEGER", "900", 60, 86400)),
+            Map.entry("security.audit.enabled", new Definition("BOOLEAN", "true", 0, 0)),
+            Map.entry("security.cors.allowed-origins", new Definition("STRING", "*", 0, 0)),
+            Map.entry("security.cors.allowed-methods", new Definition("STRING", "GET,POST,PUT,PATCH,DELETE,OPTIONS", 0, 0)),
+            Map.entry("security.endpoint.disabled-patterns", new Definition("STRING", "", 0, 0)),
+            Map.entry("security.ip.allow-list", new Definition("STRING", "", 0, 0)),
+            Map.entry("security.ip.deny-list", new Definition("STRING", "", 0, 0)));
     private final RuntimeSettingRepository settings;
     private final ConcurrentHashMap<String, String> snapshot = new ConcurrentHashMap<>();
     private final AuditService audit;
