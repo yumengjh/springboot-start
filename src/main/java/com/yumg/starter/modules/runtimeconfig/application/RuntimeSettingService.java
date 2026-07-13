@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.yumg.starter.modules.security.application.AuditService;
 
 @Service
 public class RuntimeSettingService {
@@ -26,8 +28,10 @@ public class RuntimeSettingService {
             "security.endpoint.disabled-patterns", new Definition("STRING", "", 0, 0));
     private final RuntimeSettingRepository settings;
     private final ConcurrentHashMap<String, String> snapshot = new ConcurrentHashMap<>();
+    private final AuditService audit;
 
-    public RuntimeSettingService(RuntimeSettingRepository settings) { this.settings = settings; }
+    public RuntimeSettingService(RuntimeSettingRepository settings) { this(settings, null); }
+    @Autowired public RuntimeSettingService(RuntimeSettingRepository settings, AuditService audit) { this.settings = settings; this.audit = audit; }
 
     @PostConstruct
     @Transactional
@@ -51,6 +55,7 @@ public class RuntimeSettingService {
         RuntimeSetting setting = settings.findByKey(key).orElseThrow(ApiException::notFound);
         setting.changeValue(value);
         snapshot.put(key, value);
+        if (audit != null && enabled("security.audit.enabled")) audit.runtimeSettingChanged(key, value);
         return RuntimeSettingResponse.from(setting);
     }
 
