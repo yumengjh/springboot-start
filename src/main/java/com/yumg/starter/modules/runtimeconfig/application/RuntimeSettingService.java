@@ -22,7 +22,8 @@ public class RuntimeSettingService {
             "security.brute-force.lock-seconds", new Definition("INTEGER", "900", 60, 86400),
             "security.audit.enabled", new Definition("BOOLEAN", "true", 0, 0),
             "security.cors.allowed-origins", new Definition("STRING", "*", 0, 0),
-            "security.cors.allowed-methods", new Definition("STRING", "GET,POST,PUT,PATCH,DELETE,OPTIONS", 0, 0));
+            "security.cors.allowed-methods", new Definition("STRING", "GET,POST,PUT,PATCH,DELETE,OPTIONS", 0, 0),
+            "security.endpoint.disabled-patterns", new Definition("STRING", "", 0, 0));
     private final RuntimeSettingRepository settings;
     private final ConcurrentHashMap<String, String> snapshot = new ConcurrentHashMap<>();
 
@@ -58,7 +59,7 @@ public class RuntimeSettingService {
     public String string(String key) { return snapshot.get(key); }
 
     private boolean valid(Definition definition, String value) {
-        if ("STRING".equals(definition.type())) return value != null && !value.isBlank() && value.length() <= 1000;
+        if ("STRING".equals(definition.type())) return value != null && value.length() <= 1000;
         if ("BOOLEAN".equals(definition.type())) return "true".equals(value) || "false".equals(value);
         try { int number = Integer.parseInt(value); return number >= definition.min() && number <= definition.max(); }
         catch (NumberFormatException ignored) { return false; }

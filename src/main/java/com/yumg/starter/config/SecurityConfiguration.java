@@ -9,6 +9,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import com.yumg.starter.modules.security.web.RateLimitFilter;
+import com.yumg.starter.modules.security.web.EndpointPolicyFilter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -22,12 +23,13 @@ import com.yumg.starter.modules.runtimeconfig.application.RuntimeSettingService;
 public class SecurityConfiguration {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityApiErrorHandler errors,
-                                            TraceIdFilter traceIdFilter, RateLimitFilter rateLimitFilter) throws Exception {
+                                            TraceIdFilter traceIdFilter, RateLimitFilter rateLimitFilter, EndpointPolicyFilter endpointPolicyFilter) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .oauth2ResourceServer(resourceServer -> resourceServer.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
                 .addFilterBefore(traceIdFilter, SecurityContextHolderFilter.class)
+                .addFilterBefore(endpointPolicyFilter, SecurityContextHolderFilter.class)
                 .addFilterBefore(rateLimitFilter, SecurityContextHolderFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh",
