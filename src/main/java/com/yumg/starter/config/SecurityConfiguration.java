@@ -15,6 +15,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
+import java.util.Arrays;
+import com.yumg.starter.modules.runtimeconfig.application.RuntimeSettingService;
 
 @Configuration(proxyBeanMethods = false)
 public class SecurityConfiguration {
@@ -40,15 +42,17 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-Trace-Id"));
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", configuration);
-        return source;
+    CorsConfigurationSource corsConfigurationSource(RuntimeSettingService settings) {
+        return request -> {
+            if (!request.getRequestURI().startsWith("/api/")) return null;
+            CorsConfiguration configuration = new CorsConfiguration();
+            configuration.setAllowedOriginPatterns(csv(settings.string("security.cors.allowed-origins")));
+            configuration.setAllowedMethods(csv(settings.string("security.cors.allowed-methods")));
+            configuration.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-Trace-Id"));
+            return configuration;
+        };
     }
+    private List<String> csv(String value) { return Arrays.stream(value.split(",")).map(String::trim).filter(item -> !item.isEmpty()).toList(); }
 
     private JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
