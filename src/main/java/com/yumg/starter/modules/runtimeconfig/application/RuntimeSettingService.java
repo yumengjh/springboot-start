@@ -19,6 +19,9 @@ public class RuntimeSettingService {
             Map.entry("security.rate-limit.enabled", new Definition("BOOLEAN", "true", 0, 0)),
             Map.entry("security.rate-limit.capacity", new Definition("INTEGER", "120", 1, 10000)),
             Map.entry("security.rate-limit.window-seconds", new Definition("INTEGER", "60", 1, 3600)),
+            Map.entry("security.endpoint.rate-limit.patterns", new Definition("STRING", "", 0, 0)),
+            Map.entry("security.endpoint.rate-limit.capacity", new Definition("INTEGER", "20", 1, 10000)),
+            Map.entry("security.endpoint.rate-limit.window-seconds", new Definition("INTEGER", "60", 1, 3600)),
             Map.entry("security.brute-force.enabled", new Definition("BOOLEAN", "true", 0, 0)),
             Map.entry("security.brute-force.failure-threshold", new Definition("INTEGER", "5", 3, 20)),
             Map.entry("security.brute-force.lock-seconds", new Definition("INTEGER", "900", 60, 86400)),
@@ -55,9 +58,10 @@ public class RuntimeSettingService {
         Definition definition = DEFINITIONS.get(key);
         if (definition == null || !valid(definition, value)) throw ApiException.notFound();
         RuntimeSetting setting = settings.findByKey(key).orElseThrow(ApiException::notFound);
+        boolean auditWasEnabled = enabled("security.audit.enabled");
         setting.changeValue(value);
         snapshot.put(key, value);
-        if (audit != null && enabled("security.audit.enabled")) audit.runtimeSettingChanged(key, value);
+        if (audit != null && (auditWasEnabled || "security.audit.enabled".equals(key))) audit.runtimeSettingChanged(key, value);
         return RuntimeSettingResponse.from(setting);
     }
 

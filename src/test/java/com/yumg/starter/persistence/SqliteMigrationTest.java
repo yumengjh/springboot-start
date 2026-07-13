@@ -65,6 +65,7 @@ class SqliteMigrationTest {
         assertThat(foreignKeyTargets("role_permissions")).contains("roles", "permissions");
         assertThat(columnType("users", "id")).isEqualToIgnoringCase("varchar(36)");
         assertThat(columnType("users", "status")).isEqualToIgnoringCase("varchar(32)");
+        assertThat(columnType("audit_events", "version")).isEqualToIgnoringCase("bigint");
     }
 
     @Test

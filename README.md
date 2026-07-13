@@ -43,7 +43,7 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=请替换为强密码
 - 注册、登录、RSA JWT、Refresh Token 轮换与当前设备登出
 - 用户查看本人资料、修改显示名、修改密码
 - 数据库 RBAC：初始角色、权限、用户角色分配、角色权限分配
-- 运行时服务配置基础：通用 API 限流、登录防爆破和审计开关的持久化内存快照
+- 运行时服务治理：动态 CORS、接口禁用、通用与接口级限流、CIDR IP 黑白名单、登录防爆破及审计查询
 - 统一错误响应、Trace ID、SQLite/PostgreSQL Liquibase 迁移
 - Docker、Compose、GitHub Actions 基础文件
 
@@ -57,7 +57,7 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=请替换为强密码
 
 ## 接口测试页
 
-根目录的 `api-test.html` 是浏览器测试页。先启动服务，再双击打开它；页面默认填写 `admin`（密码不预填），登录后会加载包含已有角色的用户表格、角色权限分组、管理员状态和角色分配操作，以及运行时配置。
+根目录的 `api-test.html` 是浏览器测试页。先启动服务，再双击打开它；页面默认填写 `admin`（密码不预填），登录后会加载包含已有角色的用户表格、角色权限分组、管理员状态和角色分配操作，以及运行时配置、CORS、接口策略、IP 策略和审计查询。
 
 本地从 HTML 文件发起的跨域预检支持 `GET`、`POST`、`PUT`、`PATCH`、`DELETE` 和 `OPTIONS`；因此用户状态更新、角色分配和角色权限更新都可以直接在测试页执行。生产环境应将通配来源改为明确的受信任来源。
 
@@ -69,6 +69,7 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=请替换为强密码
 | 当前用户 | `/api/v1/users/me` |
 | RBAC | `/api/v1/rbac/**` |
 | 运行时配置 | `/api/v1/system/runtime-config` |
+| 系统审计 | `/api/v1/system/audit-events` |
 | 健康检查 | `/actuator/health` |
 | OpenAPI | `/v3/api-docs`、`/swagger-ui/index.html` |
 
@@ -100,5 +101,5 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=请替换为强密码
 ## 当前重要限制
 
 - JWT 密钥当前每次启动自动生成，因此服务重启会让旧 Access Token 失效；生产外部密钥配置待完成。
-- 审计事件、IP 策略、真正限流与防爆破尚在实现。
+- IP 规则当前由运行时字符串配置管理，适合单实例基础模板；带到期时间的数据库规则和分布式计数仍是后续扩展点。
 - 不包含 MySQL、SQL Server、Redis、邮件验证、OAuth、MFA 和前端。

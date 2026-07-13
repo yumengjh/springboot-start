@@ -5,3 +5,5 @@ databaseChangeLog:
       file: db/changelog/changes/002-system.yaml
   - include:
       file: db/changelog/changes/003-announcement.yaml
+  - include:
+      file: db/changelog/changes/004-audit-event-version.yaml

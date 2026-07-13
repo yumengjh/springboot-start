@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-audit-event-version
+      author: starter
+      changes:
+        - addColumn:
+            tableName: audit_events
+            columns:
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false

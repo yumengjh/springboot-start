@@ -11,3 +11,6 @@ assert.match(page, /id="permissionGroups"/);
 assert.match(page, /function renderUsers\(/);
 assert.match(page, /function renderRoles\(/);
 assert.match(page, /function saveRolePermissions\(/);
+assert.match(page, /id="endpointRatePatterns"/);
+assert.match(page, /id="ipAllowList"/);
+assert.match(page, /function loadAuditEvents\(/);
