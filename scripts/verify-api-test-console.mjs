@@ -22,3 +22,4 @@ assert.match(page, /function restoreLogin/);
 assert.match(page, /function newAnnouncement\(/);
 assert.match(page, /function setAnnouncementMode\(/);
 assert.match(page, /id="updateAnnouncementButton"[^>]*disabled/);
+assert.match(page, /id="announcementLookupId"/);
