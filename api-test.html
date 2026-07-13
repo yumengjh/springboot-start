@@ -81,6 +81,16 @@
     <div class="form-grid"><div><label for="settingKey">配置键</label><input id="settingKey" value="security.rate-limit.capacity"></div><div><label for="settingValue">配置值</label><input id="settingValue" value="120"></div><div><label>&nbsp;</label><div class="toolbar"><button class="secondary" onclick="settings()">读取配置</button><button class="secondary" onclick="updateSetting()">更新配置</button></div></div></div>
   </section>
 
+  <section>
+    <h2>运行时 CORS 策略</h2>
+    <p class="muted">修改后立即生效。多个域名或方法用英文逗号分隔；本地测试可使用 <code>*</code>，生产应填写明确域名。</p>
+    <div class="form-grid">
+      <div><label for="corsOrigins">允许来源</label><input id="corsOrigins" value="*"></div>
+      <div><label for="corsMethods">允许方法</label><input id="corsMethods" value="GET,POST,PUT,PATCH,DELETE,OPTIONS"></div>
+      <div><label>&nbsp;</label><div class="toolbar"><button class="secondary" onclick="loadCorsSettings()">读取 CORS</button><button onclick="saveCorsSettings()">保存 CORS</button><button class="secondary" onclick="testCorsPreflight()">测试 PATCH 预检</button></div></div>
+    </div>
+  </section>
+
   <section><h2>最近响应</h2><pre id="out">等待请求…</pre></section>
 
   <script>
@@ -137,6 +147,9 @@
     const changePassword = () => api('/api/v1/users/me/password', 'PUT', { currentPassword: $('currentPassword').value, newPassword: $('newPassword').value });
     const settings = () => api('/api/v1/system/runtime-config');
     const updateSetting = () => api(`/api/v1/system/runtime-config/${encodeURIComponent($('settingKey').value)}`, 'PUT', { value: $('settingValue').value });
+    async function loadCorsSettings() { const result = await api('/api/v1/system/runtime-config'); if (!result.ok || !Array.isArray(result.data)) return; const values = Object.fromEntries(result.data.map(item => [item.key, item.value])); $('corsOrigins').value = values['security.cors.allowed-origins'] || ''; $('corsMethods').value = values['security.cors.allowed-methods'] || ''; showNotice('已读取当前 CORS 策略。', 'ok'); }
+    async function saveCorsSettings() { const origin = await api('/api/v1/system/runtime-config/security.cors.allowed-origins', 'PUT', { value: $('corsOrigins').value }); if (!origin.ok) return; const methods = await api('/api/v1/system/runtime-config/security.cors.allowed-methods', 'PUT', { value: $('corsMethods').value }); if (methods.ok) showNotice('CORS 策略已热更新。', 'ok'); }
+    async function testCorsPreflight() { try { const response = await fetch(base() + '/api/v1/admin/users/test/roles/ADMIN', { method: 'OPTIONS', headers: { Origin: location.origin === 'null' ? 'null' : location.origin, 'Access-Control-Request-Method': 'PATCH', 'Access-Control-Request-Headers': 'authorization,content-type' } }); showResponse('OPTIONS', '/api/v1/admin/users/test/roles/ADMIN', response.status, { allowedMethods: response.headers.get('Access-Control-Allow-Methods'), allowedOrigin: response.headers.get('Access-Control-Allow-Origin') }); showNotice(response.ok ? 'PATCH 预检已允许。' : 'PATCH 预检被当前 CORS 策略拒绝。', response.ok ? 'ok' : 'error'); } catch (error) { showNotice(`预检请求失败：${error.message}`, 'error'); } }
   </script>
 </body>
 </html>
