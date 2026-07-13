@@ -17,3 +17,6 @@ assert.match(page, /function loadAuditEvents\(/);
 assert.match(page, /id="announcementTitle"/);
 assert.match(page, /function createAnnouncement\(/);
 assert.match(page, /function setAnnouncementPublication\(/);
+assert.match(page, /id="rememberLogin"/);
+assert.match(page, /function restoreLogin/);
+assert.match(page, /function newAnnouncement\(/);
