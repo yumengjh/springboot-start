@@ -1,0 +1,693 @@
+# API 全量参考手册
+
+本文档以当前 Controller、DTO 和运行中的 OpenAPI 为准，覆盖本项目所有对外 HTTP 端点。服务默认地址为 `http://localhost:8080`，业务 API 统一使用 `/api/v1` 前缀。
+
+Swagger UI：`/swagger-ui/index.html`；机器可读的 OpenAPI：`/v3/api-docs`。
+
+## 1. 通用约定
+
+### 1.1 认证与权限
+
+除标为“公开”的接口外，均须携带 Access Token：
+
+```http
+Authorization: Bearer <accessToken>
+```
+
+权限是 `resource:action` 字符串。认证通过但没有接口要求权限时返回 `403 ACCESS_DENIED`；没有、失效或已被令牌版本吊销的 Access Token 返回 `401 AUTHENTICATION_REQUIRED`。
+
+公开接口仅跳过认证，仍会经过 Trace ID、IP 访问策略、接口禁用和限流。公开不等于绕过安全治理。
+
+### 1.2 成功响应
+
+`/api/v1/**` 的普通成功响应（包括 `200`、`201`）统一包在信封中：
+
+```json
+{
+  "data": {},
+  "traceId": "7cb7e5271ad740e8972182e80d357f4b",
+  "timestamp": 1784000000000
+}
+```
+
+- `data`：该接口定义的业务数据。
+- `traceId`：请求追踪 ID，同时在响应头 `X-Trace-Id` 中返回；排查问题时请携带它。
+- `timestamp`：Unix 毫秒时间戳。
+
+`204 No Content` 没有响应体。公告的匿名公开列表和匿名公开详情是刻意的最小响应，直接返回数据，不带信封、`traceId` 或 `timestamp`。Actuator、OpenAPI 和 Swagger 也不使用业务信封。
+
+### 1.3 错误响应
+
+所有业务和安全错误使用以下结构：
+
+```json
+{
+  "code": "VALIDATION_FAILED",
+  "message": "Request validation failed",
+  "traceId": "7cb7e5271ad740e8972182e80d357f4b",
+  "violations": [
+    { "field": "username", "message": "长度必须介于 3 和 32 之间" }
+  ],
+  "timestamp": 1784000000000
+}
+```
+
+常用错误码如下。除特别说明外，任意受治理的 API 都可能返回 `429`、`503` 或 `403 IP_ACCESS_DENIED`。
+
+| HTTP | `code` | 含义 |
+| --- | --- | --- |
+| 400 | `VALIDATION_FAILED` | DTO、路径或查询参数校验失败；字段原因在 `violations`。 |
+| 400 | `MALFORMED_JSON` | JSON 格式不正确。 |
+| 400 | `UNKNOWN_FIELD` | 请求包含 DTO 未声明字段；未知字段不会被静默忽略。 |
+| 400 | `INVALID_PARAMETER` / `MISSING_REQUIRED_PARAMETER` | 参数类型不合法或缺少必填查询参数。 |
+| 401 | `AUTHENTICATION_REQUIRED` | 缺少/失效/被吊销的 Access Token，或 Refresh Token 不可用。 |
+| 401 | `INVALID_CREDENTIALS` | 用户名不存在或密码错误；两者使用相同错误以避免账号枚举。 |
+| 403 | `ACCESS_DENIED` | 已认证但无所需权限。 |
+| 403 | `ACCOUNT_DISABLED` / `IP_ACCESS_DENIED` | 账号被禁用，或客户端 IP 被策略拒绝。 |
+| 409 | `CONFLICT` | 重复创建，或更新请求与当前状态冲突。 |
+| 409 | `LAST_SUPER_ADMIN_PROTECTED` | 不能移除、禁用或删除最后一个超级管理员。 |
+| 409 | `OPTIMISTIC_LOCK_CONFLICT` | 并发写入发生乐观锁冲突。 |
+| 423 | `ACCOUNT_LOCKED` | 账号临时锁定。 |
+| 429 | `RATE_LIMITED` | 触发全局或接口级限流。 |
+| 404 | `NOT_FOUND` | 路由、资源或允许的运行时配置键不存在。 |
+| 503 | `ENDPOINT_DISABLED` / `REGISTRATION_DISABLED` | 被运行时策略临时禁用，或身份注册开关关闭。 |
+| 500 | `INTERNAL_ERROR` | 未预期错误；不会泄露内部异常信息。 |
+
+### 1.4 时间、ID 与输入规则
+
+- 所有业务时间字段均为 Unix 毫秒；可选时间未设置时为 `null`。
+- UUID 使用 36 位字符串。
+- 请求 JSON 必须是 `application/json`；CORS 允许的方法和来源由运行时配置决定。
+- `OPTIONS` 是浏览器预检请求，不需要调用方主动传业务请求体。
+
+## 2. 认证与会话
+
+认证端点是公开端点，但仍经过 IP、限流和接口禁用策略。
+
+### `POST /api/v1/auth/register`
+
+注册普通用户，并自动授予 `USER` 角色。
+
+| 项目 | 说明 |
+| --- | --- |
+| 鉴权 | 公开 |
+| 成功 | `201 Created`，返回 `UserResponse` |
+| 特有错误 | `409 CONFLICT`（用户名已存在）、`503 REGISTRATION_DISABLED` |
+
+请求体：
+
+```json
+{
+  "username": "alice",
+  "displayName": "Alice",
+  "password": "a-strong-password"
+}
+```
+
+字段约束：`username` 匹配 `[A-Za-z0-9_.-]{3,32}`，会转为小写；`displayName` 1–80 字符；`password` 10–128 字符。
+
+`data`：
+
+```json
+{ "id": "uuid", "username": "alice", "displayName": "Alice", "status": "ACTIVE" }
+```
+
+### `POST /api/v1/auth/login`
+
+密码登录并签发一组短期 Access Token 和可轮换 Refresh Token。
+
+| 项目 | 说明 |
+| --- | --- |
+| 鉴权 | 公开 |
+| 成功 | `200 OK`，返回 `TokenResponse` |
+| 特有错误 | `401 INVALID_CREDENTIALS`、`423 ACCOUNT_LOCKED`、`403 ACCOUNT_DISABLED` |
+
+请求体：
+
+```json
+{ "username": "admin", "password": "your-password" }
+```
+
+`username`、`password` 均不能为空，最大分别为 32、128 字符。成功 `data`：
+
+```json
+{
+  "accessToken": "eyJ...",
+  "refreshToken": "opaque-one-time-token",
+  "tokenType": "Bearer",
+  "expiresIn": 900
+}
+```
+
+`accessToken` 有效期为 900 秒；`refreshToken` 只在客户端保存原文，服务端只保存其哈希。
+
+### `POST /api/v1/auth/refresh`
+
+消耗当前 Refresh Token，签发新的 Access/Refresh Token。客户端必须原子替换两者。
+
+| 项目 | 说明 |
+| --- | --- |
+| 鉴权 | 公开（使用请求体中的 Refresh Token） |
+| 成功 | `200 OK`，返回与登录相同的 `TokenResponse` |
+| 特有错误 | `401 AUTHENTICATION_REQUIRED`（过期、撤销、错误或重复使用的 Token） |
+
+请求体：
+
+```json
+{ "refreshToken": "opaque-one-time-token" }
+```
+
+旧 Refresh Token 被重复使用时，该 Token 家族会被撤销。
+
+### `POST /api/v1/auth/logout`
+
+撤销一个 Refresh Token，通常用于当前设备退出。
+
+| 项目 | 说明 |
+| --- | --- |
+| 鉴权 | 公开（使用请求体中的 Refresh Token） |
+| 成功 | `204 No Content` |
+
+请求体与刷新接口相同。无论客户端是否还保存 Access Token，退出后都应从本地清除两种 Token。
+
+## 3. 当前用户
+
+本节所有接口都需要有效 Bearer Token，但不需要额外 RBAC 权限。
+
+### `GET /api/v1/users/me`
+
+读取当前 Access Token 对应账号。
+
+| 成功 | `200 OK` |
+| `data` | `id`、`username`、`displayName`、`status` |
+
+### `PATCH /api/v1/users/me`
+
+修改当前用户显示名。
+
+| 成功 | `200 OK`，返回更新后的当前用户 |
+| 请求体 | `{"displayName":"新的显示名"}` |
+| 校验 | `displayName` 非空，最大 80 字符 |
+
+### `PUT /api/v1/users/me/password`
+
+修改当前用户密码。成功后服务会撤销该用户全部 Refresh Session，并递增令牌版本，旧 Access Token 立即失效。
+
+| 成功 | `204 No Content` |
+| 特有错误 | `401 AUTHENTICATION_REQUIRED`（当前密码不正确） |
+
+请求体：
+
+```json
+{ "currentPassword": "old-password", "newPassword": "new-strong-password" }
+```
+
+`currentPassword` 非空且最多 128 字符；`newPassword` 为 10–128 字符。
+
+### `GET /api/v1/users/me/sessions`
+
+列出当前用户全部 Refresh Session；不会返回 Refresh Token 原文、设备指纹或密码。
+
+| 成功 | `200 OK` |
+| `data` | Session 数组 |
+
+每项：
+
+```json
+{ "id": "uuid", "issuedAt": 1784000000000, "expiresAt": 1786592000000, "revokedAt": null }
+```
+
+### `POST /api/v1/users/me/sessions/revoke`
+
+退出当前账号的全部设备。服务撤销全部 Refresh Session 并递增 `token_version`，使当前和其他设备的旧 Access Token 都立即失效。
+
+| 成功 | `204 No Content` |
+| 客户端动作 | 收到成功响应后立即清除本地 Access/Refresh Token 并重新登录。 |
+
+## 4. 管理员用户管理
+
+### `GET /api/v1/admin/users`
+
+分页查询用户，可按关键字或状态过滤。
+
+| 项目 | 说明 |
+| --- | --- |
+| 权限 | `system:user:read` |
+| 成功 | `200 OK` |
+| 查询参数 | `q`：可选，用户名或显示名关键字；`status`：可选，`ACTIVE`/`LOCKED`/`DISABLED`；`page`：默认 0，最小 0；`size`：默认 20，1–100。 |
+
+`data`：
+
+```json
+{
+  "items": [{ "id": "uuid", "username": "alice", "displayName": "Alice", "status": "ACTIVE", "roles": ["USER"] }],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+### `GET /api/v1/admin/users/{id}`
+
+读取单个用户管理视图。
+
+| 权限 | `system:user:read` |
+| 成功 | `200 OK`，返回与列表 `items` 相同的用户结构 |
+| 路径参数 | `id`：UUID |
+| 特有错误 | `404 NOT_FOUND` |
+
+### `PATCH /api/v1/admin/users/{id}/status`
+
+更新账号状态。禁用或锁定用户会撤销其 Refresh Session 并使其旧 Access Token 失效。
+
+| 权限 | `system:user:write` |
+| 成功 | `200 OK`，返回更新后的用户 |
+| 路径参数 | `id`：UUID |
+| 特有错误 | `409 LAST_SUPER_ADMIN_PROTECTED` |
+
+请求体：
+
+```json
+{ "status": "DISABLED" }
+```
+
+可用值：`ACTIVE`（启用/解锁）、`LOCKED`（临时锁定）、`DISABLED`（禁用）。
+
+### `POST /api/v1/admin/users/{id}/sessions/revoke`
+
+管理员强制下线指定用户。
+
+| 权限 | `system:user:write` |
+| 成功 | `204 No Content` |
+| 效果 | 撤销目标用户全部 Refresh Session，并立即使其旧 Access Token 失效。 |
+| 特有错误 | `404 NOT_FOUND` |
+
+## 5. RBAC：角色、权限与分配
+
+所有接口要求 Bearer Token。角色编码可创建但不能改名；权限编码可创建但不能改名。所有 RBAC 写操作会记录审计，且会使受影响用户的 Token 失效。
+
+### 5.1 角色目录
+
+#### `GET /api/v1/rbac/roles`
+
+| 权限 | `system:role:read` |
+| 成功 | `200 OK` |
+
+`data` 示例：
+
+```json
+[{ "code": "ADMIN", "displayName": "管理员", "permissions": ["system:user:read"] }]
+```
+
+#### `POST /api/v1/rbac/roles`
+
+| 权限 | `system:role:write` |
+| 成功 | `201 Created`，返回新角色 |
+| 特有错误 | `409 CONFLICT`（编码已存在） |
+
+请求体：
+
+```json
+{ "code": "CONTENT_EDITOR", "displayName": "内容编辑" }
+```
+
+`code` 必须匹配 `[A-Z_]{2,64}`；`displayName` 非空且最多 160 字符。
+
+#### `PUT /api/v1/rbac/roles/{roleCode}`
+
+修改角色显示名。
+
+| 权限 | `system:role:write` |
+| 成功 | `200 OK`，返回更新后的角色 |
+| 路径参数 | `roleCode`：`[A-Z_]{2,64}` |
+| 注意 | 请求体 `code` 必须与路径相同；不支持改角色编码。 |
+
+请求体与创建角色相同。
+
+#### `DELETE /api/v1/rbac/roles/{roleCode}`
+
+删除角色，并从所有用户移除该角色。
+
+| 权限 | `system:role:write` |
+| 成功 | `204 No Content` |
+| 特有错误 | `404 NOT_FOUND`、`409 LAST_SUPER_ADMIN_PROTECTED` |
+
+### 5.2 权限目录
+
+#### `GET /api/v1/rbac/permissions`
+
+| 权限 | `system:role:read` |
+| 成功 | `200 OK` |
+
+`data` 示例：
+
+```json
+[{ "code": "example:announcement:write", "description": "创建和修改公告" }]
+```
+
+#### `POST /api/v1/rbac/permissions`
+
+| 权限 | `system:role:write` |
+| 成功 | `201 Created` |
+| 特有错误 | `409 CONFLICT` |
+
+请求体：
+
+```json
+{ "code": "content:article:publish", "description": "发布文章" }
+```
+
+`code` 必须匹配 `[a-z]+:[a-z-]+:[a-z]+`；`description` 可省略或为 `null`，最长 500 字符。
+
+#### `PUT /api/v1/rbac/permissions/{permissionCode}`
+
+修改权限说明。
+
+| 权限 | `system:role:write` |
+| 成功 | `200 OK` |
+| 注意 | 路径和请求体 `code` 必须相同；不支持改权限编码。 |
+
+请求体与创建权限相同。
+
+#### `DELETE /api/v1/rbac/permissions/{permissionCode}`
+
+删除权限，并从拥有它的角色撤销该权限。
+
+| 权限 | `system:role:write` |
+| 成功 | `204 No Content` |
+| 效果 | 只使实际持有此权限的角色成员 Token 失效；不影响无关角色。 |
+
+### 5.3 用户角色分配
+
+#### `PUT /api/v1/rbac/users/{userId}/roles/{roleCode}`
+
+为用户分配角色。
+
+| 权限 | `system:role:assign` |
+| 成功 | `200 OK`，空业务数据 |
+| 参数 | `userId` 为 UUID；`roleCode` 匹配 `[A-Z_]{2,64}` |
+| 效果 | 目标用户现有 Token 立即失效，需要重新登录或刷新。 |
+
+#### `DELETE /api/v1/rbac/users/{userId}/roles/{roleCode}`
+
+移除用户角色。
+
+| 权限 | `system:role:assign` |
+| 成功 | `200 OK`，空业务数据 |
+| 特有错误 | `409 LAST_SUPER_ADMIN_PROTECTED`（最后一名超级管理员） |
+
+### 5.4 角色权限分配
+
+#### `PUT /api/v1/rbac/roles/{roleCode}/permissions/{permissionCode}`
+
+将权限授予角色。
+
+| 权限 | `system:role:write` |
+| 成功 | `200 OK`，空业务数据 |
+| 效果 | 拥有该角色的用户旧 Token 立即失效。 |
+
+#### `DELETE /api/v1/rbac/roles/{roleCode}/permissions/{permissionCode}`
+
+从角色撤销权限。
+
+| 权限 | `system:role:write` |
+| 成功 | `200 OK`，空业务数据 |
+| 效果 | 拥有该角色的用户旧 Token 立即失效。 |
+
+## 6. 运行时服务治理
+
+### `GET /api/v1/system/runtime-config`
+
+读取全部允许运行时修改的服务配置。
+
+| 权限 | `system:config:read` |
+| 成功 | `200 OK` |
+
+`data` 是如下数组：
+
+```json
+[{ "key": "security.rate-limit.capacity", "type": "INTEGER", "value": "120" }]
+```
+
+### `PUT /api/v1/system/runtime-config/{key}`
+
+修改一个允许的运行时配置，并立即刷新内存快照。更新行为会写审计日志。
+
+| 权限 | `system:config:write` |
+| 成功 | `200 OK`，返回更新后的配置 |
+| 请求体 | `{"value":"..."}`；`value` 必须存在，始终是字符串。 |
+| 特有错误 | `404 NOT_FOUND`（不允许修改的键或值不符合该键定义） |
+
+允许的键和值域：
+
+| 键 | 类型与允许值 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `security.rate-limit.enabled` | `true` / `false` | `true` | 全局 API 限流开关。 |
+| `security.rate-limit.capacity` | 整数 1–10000 | `120` | 全局窗口请求数。 |
+| `security.rate-limit.window-seconds` | 整数 1–3600 | `60` | 全局限流窗口秒数。 |
+| `security.endpoint.rate-limit.patterns` | 最长 1000 字符 | 空 | 逗号分隔 Ant 路径模式。 |
+| `security.endpoint.rate-limit.capacity` | 整数 1–10000 | `20` | 匹配接口的独立窗口容量。 |
+| `security.endpoint.rate-limit.window-seconds` | 整数 1–3600 | `60` | 匹配接口的独立窗口秒数。 |
+| `security.brute-force.enabled` | `true` / `false` | `true` | 登录防爆破开关。 |
+| `security.brute-force.failure-threshold` | 整数 3–20 | `5` | 观察窗口内失败阈值。 |
+| `security.brute-force.window-seconds` | 整数 60–86400 | `900` | 失败观察窗口秒数。 |
+| `security.brute-force.lock-seconds` | 整数 60–86400 | `900` | 自动锁定秒数。 |
+| `security.request-log.enabled` | `true` / `false` | `true` | `/api/**` 结构化请求日志开关。 |
+| `security.audit.enabled` | `true` / `false` | `true` | 审计写入开关。修改此键本身仍会留审计。 |
+| `security.cors.allowed-origins` | 最长 1000 字符 | `*` | 逗号分隔允许来源模式。生产应写明确域名。 |
+| `security.cors.allowed-methods` | 最长 1000 字符 | `GET,POST,PUT,PATCH,DELETE,OPTIONS` | 逗号分隔允许方法。不要移除测试/业务需要的方法。 |
+| `security.endpoint.disabled-patterns` | 最长 1000 字符 | 空 | 逗号分隔禁用的 Ant 路径模式。 |
+| `security.ip.allow-list` | 最长 1000 字符 | 空 | 逗号分隔 IP/CIDR 白名单；非空时只允许命中地址。 |
+| `security.ip.deny-list` | 最长 1000 字符 | 空 | 逗号分隔 IP/CIDR 黑名单，优先级高于白名单。 |
+| `identity.registration.enabled` | `true` / `false` | `true` | 是否允许 `POST /api/v1/auth/register`。 |
+
+数据库连接、JWT 密钥、可信代理和初始管理员不属于运行时配置，必须通过 `.env` 或启动环境变量设置并重启。
+
+### `GET /api/v1/system/ip-access-rules`
+
+读取持久化 API IP 规则。
+
+| 权限 | `system:config:read` |
+| 成功 | `200 OK`，返回规则数组 |
+
+每项：
+
+```json
+{ "id": "uuid", "type": "DENY", "network": "203.0.113.0/24", "scope": "API", "expiresAt": null, "reason": "temporary abuse block" }
+```
+
+`DENY` 优先；存在有效 `ALLOW` 规则时，只允许命中任一 Allow 的客户端访问 API。
+
+### `POST /api/v1/system/ip-access-rules`
+
+创建持久化 IP/CIDR 规则。
+
+| 权限 | `system:config:write` |
+| 成功 | `201 Created`，返回创建结果 |
+
+请求体：
+
+```json
+{
+  "type": "DENY",
+  "network": "203.0.113.0/24",
+  "expiresAt": 1784000000000,
+  "reason": "temporary abuse block"
+}
+```
+
+`type` 为 `ALLOW` 或 `DENY`；`network` 为 IPv4、IPv6 或 CIDR；`expiresAt` 可省略/为 `null` 表示永久；`reason` 必填。不要在远程环境创建会阻断自己管理地址的规则。
+
+### `DELETE /api/v1/system/ip-access-rules/{id}`
+
+删除一条持久化 IP 规则。
+
+| 权限 | `system:config:write` |
+| 成功 | `204 No Content` |
+| 特有错误 | `404 NOT_FOUND` |
+
+### `GET /api/v1/system/audit-events`
+
+分页读取审计事件。
+
+| 权限 | `system:audit:read` |
+| 成功 | `200 OK` |
+| 查询参数 | `page`：默认 0，最小 0；`size`：默认 20，1–100。 |
+
+`data` 使用通用分页结构；每个 `items` 项：
+
+```json
+{
+  "id": "uuid",
+  "actorId": "uuid-or-null",
+  "action": "ROLE_PERMISSION_GRANTED",
+  "result": "SUCCESS",
+  "targetType": "Role",
+  "targetId": "ADMIN",
+  "occurredAt": 1784000000000,
+  "traceId": "...",
+  "metadata": "{\"permission\":\"system:user:read\"}"
+}
+```
+
+`metadata` 是脱敏后的 JSON 字符串；密码、原始 Token 与敏感请求体不会写入。
+
+## 7. 系统信息与公告示例
+
+### `GET /api/v1/system/info`
+
+读取非敏感构建信息。
+
+| 项目 | 说明 |
+| --- | --- |
+| 鉴权 | 公开 |
+| 成功 | `200 OK`，仍使用普通 API 信封 |
+| `data` | `version`、`gitCommit`、`buildTime` |
+
+```json
+{ "version": "0.0.1-SNAPSHOT", "gitCommit": "abcdef...", "buildTime": 1784000000000 }
+```
+
+从不在运行时捏造版本信息；无构建元数据时相应字段为 `null`。
+
+### 7.1 公告公开读取
+
+以下接口匿名时只返回已发布内容，并且直接返回最小数据（无业务信封）。如果调用者携带有效 Access Token 且拥有 `example:announcement:read`，同一地址会升级为管理详情的普通信封响应。
+
+#### `GET /api/v1/announcements`（也兼容尾部 `/`）
+
+| 鉴权 | 公开；拥有 `example:announcement:read` 时为详细视图 |
+| 匿名成功 | `200 OK`，已发布公告最小列表 |
+
+匿名响应：
+
+```json
+[{ "id": "uuid", "title": "维护通知", "authorDisplayName": "Admin", "version": 1 }]
+```
+
+不返回草稿、`published`、发布时间或作者 ID。
+
+#### `GET /api/v1/announcements/{id}`（也兼容尾部 `/`）
+
+| 鉴权 | 同公开列表 |
+| 匿名成功 | `200 OK`，仅已发布公告正文 |
+| 特有错误 | `404 NOT_FOUND`（不存在、未发布或不公开） |
+
+匿名响应：
+
+```json
+{ "title": "维护通知", "content": "...", "authorDisplayName": "Admin", "version": 1 }
+```
+
+### 7.2 公告管理接口
+
+管理接口永远要求相应公告权限，返回普通 API 信封与完整 `AnnouncementResponse`：
+
+```json
+{
+  "id": "uuid",
+  "title": "维护通知",
+  "content": "...",
+  "published": false,
+  "publishedAt": null,
+  "authorId": "uuid",
+  "version": 1
+}
+```
+
+`version` 是乐观锁版本，服务端写入时自动维护。
+
+#### `GET /api/v1/announcements/manage`
+
+| 权限 | `example:announcement:read` |
+| 成功 | `200 OK`，返回全部公告（包含草稿和已发布） |
+
+#### `GET /api/v1/announcements/manage/{id}`
+
+| 权限 | `example:announcement:read` |
+| 成功 | `200 OK`，返回一条完整公告 |
+| 特有错误 | `404 NOT_FOUND` |
+
+#### `POST /api/v1/announcements`
+
+创建草稿，作者从当前 JWT 自动取得。
+
+| 权限 | `example:announcement:write` |
+| 成功 | `201 Created`，返回草稿 |
+
+请求体：
+
+```json
+{ "title": "维护通知", "content": "公告正文" }
+```
+
+`title` 非空且最多 160 字符；`content` 非空且最多 20000 字符。
+
+#### `PUT /api/v1/announcements/{id}`
+
+修改标题和正文。
+
+| 权限 | `example:announcement:write` |
+| 成功 | `200 OK`，返回更新后的公告 |
+| 请求体 | 与创建公告相同 |
+| 特有错误 | `404 NOT_FOUND`、`409 OPTIMISTIC_LOCK_CONFLICT` |
+
+#### `PUT /api/v1/announcements/{id}/publication?published={boolean}`
+
+发布或撤回公告。
+
+| 权限 | `example:announcement:write` |
+| 成功 | `200 OK`，返回更新后的公告 |
+| 查询参数 | `published`：必填，`true` 为发布，`false` 为撤回草稿。 |
+
+#### `DELETE /api/v1/announcements/{id}`
+
+删除公告。
+
+| 权限 | `example:announcement:delete` |
+| 成功 | `204 No Content` |
+| 特有错误 | `404 NOT_FOUND` |
+
+## 8. OpenAPI、Swagger 与 Actuator
+
+### `GET /v3/api-docs`
+
+公开返回当前服务生成的 OpenAPI JSON。适合导入 Postman、Insomnia 或生成客户端。不是业务信封。
+
+### `GET /swagger-ui/index.html`
+
+公开返回 Swagger UI 静态页面。生产环境可通过 Springdoc 配置关闭或在网关层保护。
+
+### Actuator
+
+当前暴露 `health`、`info`、`metrics`。这些端点不使用业务 API 信封，也不受 `/api/**` 的 CORS/运行时路由策略影响。
+
+| 路径 | 鉴权 | 用途 |
+| --- | --- | --- |
+| `GET /actuator/health` | 公开 | 健康汇总，返回 `UP`/`DOWN` 等状态。 |
+| `GET /actuator/health/liveness` | 公开 | 存活探针。 |
+| `GET /actuator/health/readiness` | 公开 | 就绪探针。 |
+| `GET /actuator/info` | Bearer Token | Spring Boot 构建/应用信息。 |
+| `GET /actuator/metrics` | Bearer Token | 可用指标名称列表。 |
+| `GET /actuator/metrics/{name}` | Bearer Token | 指定指标；可使用 Actuator 的 `tag` 查询参数筛选。 |
+
+Actuator 当前使用 Spring Security 的通用认证规则，不要求额外 `system:*` 权限；任何有效、未失效的 Access Token 即可访问被保护的 Actuator 项目。生产环境应按部署策略额外收紧网络边界。
+
+## 9. 内置权限速查
+
+| 权限 | 可操作范围 |
+| --- | --- |
+| `system:user:read` | 查询管理员用户列表和详情。 |
+| `system:user:write` | 更新用户状态、强制撤销用户会话。 |
+| `system:role:read` | 查询角色和权限目录。 |
+| `system:role:write` | 角色/权限 CRUD、角色权限授予/撤销。 |
+| `system:role:assign` | 给用户分配/移除角色。 |
+| `system:config:read` | 读取运行时配置与持久化 IP 规则。 |
+| `system:config:write` | 修改运行时配置、创建/删除持久化 IP 规则。 |
+| `system:audit:read` | 查询审计日志。 |
+| `example:announcement:read` | 读取公告管理视图，并将公开公告接口升级为详细视图。 |
+| `example:announcement:write` | 创建、更新、发布、撤回公告。 |
+| `example:announcement:delete` | 删除公告。 |
+
+`SUPER_ADMIN`、`ADMIN`、`USER` 是初始数据而非硬编码枚举。后续角色与权限均通过 RBAC 接口维护。

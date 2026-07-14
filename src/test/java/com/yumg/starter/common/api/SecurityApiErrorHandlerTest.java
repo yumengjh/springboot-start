@@ -43,7 +43,8 @@ class SecurityApiErrorHandlerTest {
             .andExpect(status().isUnauthorized())
             .andExpect(header().string("X-Trace-Id", "security_trace"))
             .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"))
-            .andExpect(jsonPath("$.traceId").value("security_trace"));
+            .andExpect(jsonPath("$.traceId").value("security_trace"))
+            .andExpect(jsonPath("$.timestamp").isNumber());
     }
 
     @Test

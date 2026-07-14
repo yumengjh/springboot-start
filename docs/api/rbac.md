@@ -30,6 +30,12 @@ users --< user_roles >-- roles --< role_permissions >-- permissions
 
 - `GET /roles`：查看角色及其权限，需 `system:role:read`。
 - `GET /permissions`：查看可分配的权限目录，需 `system:role:read`。
+- `POST /roles`：创建角色，需 `system:role:write`。请求体：`{"code":"CONTENT_EDITOR","displayName":"内容编辑"}`。
+- `PUT /roles/{roleCode}`：修改角色显示名，需 `system:role:write`。路径和请求体的 `code` 必须一致，角色编码不可改名。
+- `DELETE /roles/{roleCode}`：删除角色，需 `system:role:write`；会从所有用户移除该角色并使受影响令牌失效。最后一个 `SUPER_ADMIN` 不可删除。
+- `POST /permissions`：创建权限，需 `system:role:write`。请求体：`{"code":"content:article:publish","description":"发布文章"}`。
+- `PUT /permissions/{permissionCode}`：修改权限说明，需 `system:role:write`。权限编码不可改名。
+- `DELETE /permissions/{permissionCode}`：删除权限，需 `system:role:write`；会从所有角色撤销该权限并使受影响令牌失效。
 - `PUT /users/{userId}/roles/{roleCode}`：给用户分配角色，需 `system:role:assign`。
 - `DELETE /users/{userId}/roles/{roleCode}`：移除用户角色，需 `system:role:assign`。
 - `PUT /roles/{roleCode}/permissions/{permissionCode}`：给角色授予权限，需 `system:role:write`。
@@ -37,13 +43,13 @@ users --< user_roles >-- roles --< role_permissions >-- permissions
 
 `GET /roles` 的角色列表位于统一响应的 `data` 中；上述成功但无实体的 PUT/DELETE 操作返回 `204 No Content`。
 
-角色与权限创建接口尚未实现。
+角色编码必须匹配 `[A-Z_]{2,64}`；权限编码必须匹配 `resource:action` 的三段小写形式，例如 `content:article:publish`。目录修改、角色分配和权限分配均会记录审计事件。
 
 ## 管理员用户管理
 
 - `GET /api/v1/admin/users`：列出用户，需 `system:user:read`。
 - `PATCH /api/v1/admin/users/{id}/status`：更新状态，需 `system:user:write`。请求体示例：`{"status":"DISABLED"}`。
 - `GET /api/v1/admin/users/{id}`：查看单用户详情，需 `system:user:read`。
-- `POST /api/v1/admin/users/{id}/sessions/revoke`：撤销该用户全部 Refresh Session，需 `system:user:write`，返回 `204`。
+- `POST /api/v1/admin/users/{id}/sessions/revoke`：撤销该用户全部 Refresh Session 并使现有 Access Token 立即失效，需 `system:user:write`，返回 `204`。
 
 支持 `ACTIVE`、`LOCKED`、`DISABLED`。锁定默认持续 15 分钟；禁用或锁定会撤销该用户全部 Refresh Token，并递增 Token 版本。

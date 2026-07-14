@@ -17,7 +17,15 @@ server:
   shutdown: graceful
   forward-headers-strategy: none
 
+app:
+  security:
+    trusted-proxies: ${APP_SECURITY_TRUSTED_PROXIES:}
+
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
   endpoint:
     health:
       probes:

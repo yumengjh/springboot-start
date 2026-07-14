@@ -11,10 +11,13 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/v1/system/runtime-config")
+@Tag(name = "运行时配置") @SecurityRequirement(name = "bearerAuth")
 public class RuntimeSettingController {
     private final RuntimeSettingService settings;
     public RuntimeSettingController(RuntimeSettingService settings) { this.settings = settings; }

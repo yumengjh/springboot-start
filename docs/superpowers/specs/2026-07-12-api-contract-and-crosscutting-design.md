@@ -6,17 +6,17 @@
 
 ## 响应契约
 
-成功且有响应体的 `/api/v1/**` 接口统一为：
+成功且有响应体的 `/api/v1/**` 接口默认统一为：
 
 ```json
 {
   "data": {},
   "traceId": "...",
-  "timestamp": "..."
+  "timestamp": 1783814400000
 }
 ```
 
-`204 No Content` 保持空响应体。错误继续使用既有 `ApiError`，包含 `code`、`message`、`traceId`、`violations` 和 `timestamp`。Actuator、OpenAPI、Swagger 不参与成功包装。
+`204 No Content` 保持空响应体。`@PublicApi(minimalResponse = true)` 可为公开内容接口明确选择最小响应体，不携带信封元数据。错误继续使用既有 `ApiError`，包含 `code`、`message`、`traceId`、`violations` 和 Unix 毫秒时间戳 `timestamp`。Actuator、OpenAPI、Swagger 不参与成功包装。
 
 ## 横切职责
 

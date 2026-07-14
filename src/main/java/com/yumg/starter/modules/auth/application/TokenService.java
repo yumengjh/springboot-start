@@ -5,6 +5,7 @@ import com.yumg.starter.entities.User;
 import com.yumg.starter.common.api.ApiException;
 import com.yumg.starter.modules.auth.api.dto.TokenResponse;
 import com.yumg.starter.modules.auth.infrastructure.RefreshSessionRepository;
+import com.yumg.starter.modules.security.application.AuditService;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -28,10 +29,12 @@ public class TokenService {
     private static final SecureRandom RANDOM = new SecureRandom();
     private final JwtEncoder encoder;
     private final RefreshSessionRepository refreshSessions;
+    private final AuditService audit;
 
-    public TokenService(JwtEncoder encoder, RefreshSessionRepository refreshSessions) {
+    public TokenService(JwtEncoder encoder, RefreshSessionRepository refreshSessions, AuditService audit) {
         this.encoder = encoder;
         this.refreshSessions = refreshSessions;
+        this.audit = audit;
     }
 
     @Transactional
@@ -49,6 +52,7 @@ public class TokenService {
         }
         if (session.isConsumed()) {
             refreshSessions.revokeFamily(session.getFamilyId(), now);
+            audit.event("REFRESH_TOKEN_REUSE_DETECTED", "RefreshSession", session.getId(), "FAILURE", "{\"action\":\"family_revoked\"}");
             throw ApiException.unauthorized();
         }
         session.consume(now);

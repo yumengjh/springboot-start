@@ -10,14 +10,19 @@ import com.yumg.starter.modules.users.api.dto.UpdateProfileRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.yumg.starter.modules.auth.infrastructure.RefreshSessionRepository;
+import com.yumg.starter.modules.users.api.dto.SessionResponse;
+import java.util.List;
 
 @Service
 public class UserProfileService {
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokens;
-    public UserProfileService(UserRepository users, PasswordEncoder passwordEncoder, TokenService tokens) {
+    private final RefreshSessionRepository sessions;
+    public UserProfileService(UserRepository users, PasswordEncoder passwordEncoder, TokenService tokens, RefreshSessionRepository sessions) {
         this.users = users; this.passwordEncoder = passwordEncoder; this.tokens = tokens;
+        this.sessions = sessions;
     }
     @Transactional(readOnly = true)
     public CurrentUserResponse current(String userId) {
@@ -37,5 +42,7 @@ public class UserProfileService {
         user.changePasswordHash(passwordEncoder.encode(request.newPassword()));
         tokens.revokeAllForUser(userId);
     }
+    @Transactional(readOnly = true) public List<SessionResponse> sessions(String userId) { return sessions.findAllByUserIdOrderByIssuedAtDesc(userId).stream().map(SessionResponse::from).toList(); }
+    @Transactional public void revokeAllSessions(String userId) { find(userId).invalidateSessions(); tokens.revokeAllForUser(userId); }
     private User find(String userId) { return users.findById(userId).orElseThrow(ApiException::notFound); }
 }

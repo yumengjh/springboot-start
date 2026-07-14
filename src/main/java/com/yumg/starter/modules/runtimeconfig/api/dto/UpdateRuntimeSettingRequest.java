@@ -1,5 +1,5 @@
 package com.yumg.starter.modules.runtimeconfig.api.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
-public record UpdateRuntimeSettingRequest(@NotBlank String value) {}
+public record UpdateRuntimeSettingRequest(@NotNull String value) {}

@@ -1,7 +1,6 @@
 package com.yumg.starter.common.api;
 
 import com.yumg.starter.common.web.TraceIdFilter;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.MDC;
@@ -11,7 +10,7 @@ final class ApiErrorFactory {
     private ApiErrorFactory() {}
 
     static ApiError create(ApiErrorCode error, List<FieldViolation> violations) {
-        return new ApiError(error.name(), error.message(), traceId(), violations, Instant.now());
+        return new ApiError(error.name(), error.message(), traceId(), violations, System.currentTimeMillis());
     }
 
     static ResponseEntity<ApiError> response(ApiErrorCode error, List<FieldViolation> violations) {

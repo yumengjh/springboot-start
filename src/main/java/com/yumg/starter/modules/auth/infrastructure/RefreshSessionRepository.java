@@ -3,6 +3,7 @@ package com.yumg.starter.modules.auth.infrastructure;
 import com.yumg.starter.entities.RefreshSession;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -11,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 
 public interface RefreshSessionRepository extends JpaRepository<RefreshSession, String> {
+    List<RefreshSession> findAllByUserIdOrderByIssuedAtDesc(String userId);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<RefreshSession> findByTokenHash(String tokenHash);
 

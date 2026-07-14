@@ -20,9 +20,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.validation.annotation.Validated;
 import jakarta.validation.constraints.Pattern;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
 @RequestMapping("/api/v1/admin/users")
+@Tag(name = "用户管理") @SecurityRequirement(name = "bearerAuth")
 @Validated
 public class UserAdministrationController {
     private final UserAdministrationService users;

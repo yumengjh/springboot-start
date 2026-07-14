@@ -1,6 +1,4 @@
 package com.yumg.starter.common.api;
 
-import java.time.Instant;
-
-public record ApiResponse<T>(T data, String traceId, Instant timestamp) {
+public record ApiResponse<T>(T data, String traceId, long timestamp) {
 }

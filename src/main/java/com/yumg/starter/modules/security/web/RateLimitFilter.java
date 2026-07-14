@@ -5,6 +5,7 @@ import com.yumg.starter.common.api.ApiErrorWriter;
 import com.yumg.starter.modules.security.application.RateLimitService;
 import com.yumg.starter.modules.security.application.EndpointRateLimitPolicy;
 import com.yumg.starter.modules.runtimeconfig.application.RuntimeSettingService;
+import com.yumg.starter.common.web.ClientIpResolver;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,11 +20,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final RateLimitService limits;
     private final RuntimeSettingService settings;
     private final ApiErrorWriter errors;
+    private final ClientIpResolver clientIp;
 
-    public RateLimitFilter(RateLimitService limits, RuntimeSettingService settings, ApiErrorWriter errors) {
+    public RateLimitFilter(RateLimitService limits, RuntimeSettingService settings, ApiErrorWriter errors, ClientIpResolver clientIp) {
         this.limits = limits;
         this.settings = settings;
         this.errors = errors;
+        this.clientIp = clientIp;
     }
 
     @Override
@@ -35,7 +38,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
-        String key = request.getRemoteAddr() + ':' + request.getRequestURI();
+        String key = clientIp.resolve(request) + ':' + request.getRequestURI();
         String path = request.getRequestURI();
         EndpointRateLimitPolicy endpointPolicy = new EndpointRateLimitPolicy(settings.string("security.endpoint.rate-limit.patterns"));
         boolean allowed = endpointPolicy.matches(path)

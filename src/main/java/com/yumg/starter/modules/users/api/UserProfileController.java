@@ -14,13 +14,21 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PostMapping;
+import java.util.List;
+import com.yumg.starter.modules.users.api.dto.SessionResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
 @RequestMapping("/api/v1/users/me")
+@Tag(name = "当前用户") @SecurityRequirement(name = "bearerAuth")
 public class UserProfileController {
     private final UserProfileService users;
     public UserProfileController(UserProfileService users) { this.users = users; }
     @GetMapping public CurrentUserResponse current(@AuthenticationPrincipal Jwt jwt) { return users.current(jwt.getSubject()); }
     @PatchMapping public CurrentUserResponse update(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody UpdateProfileRequest request) { return users.updateProfile(jwt.getSubject(), request); }
     @PutMapping("/password") public ResponseEntity<Void> changePassword(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ChangePasswordRequest request) { users.changePassword(jwt.getSubject(), request); return ResponseEntity.noContent().build(); }
+    @GetMapping("/sessions") public List<SessionResponse> sessions(@AuthenticationPrincipal Jwt jwt) { return users.sessions(jwt.getSubject()); }
+    @PostMapping("/sessions/revoke") public ResponseEntity<Void> revokeAllSessions(@AuthenticationPrincipal Jwt jwt) { users.revokeAllSessions(jwt.getSubject()); return ResponseEntity.noContent().build(); }
 }

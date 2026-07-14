@@ -22,7 +22,7 @@
     "expiresIn": 900
   },
   "traceId": "...",
-  "timestamp": "..."
+  "timestamp": 1783814400000
 }
 ```
 
@@ -34,11 +34,20 @@ Authorization: Bearer <access-token>
 
 JWT 包含用户 ID、用户名、令牌版本和有效权限列表。Refresh Token 有效期为 30 天，数据库只保存它的 SHA-256 哈希，绝不保存原文。
 
+`timestamp` 为 Unix 毫秒时间戳。认证接口是公开端点，但仍受 IP 策略、接口禁用与限流等服务级安全策略约束。
+
 ## 刷新、复用与登出
 
 每次刷新都会消耗旧 Refresh Token，并返回一组新的 Access/Refresh Token；客户端必须原子地替换旧值。旧 Token 被再次使用时，服务会撤销该 Token 家族并返回 `401 AUTHENTICATION_REQUIRED`。
 
-登出会撤销传入的 Refresh Token。修改密码会撤销该用户所有 Refresh Token。全设备登出、管理员强制下线和账户禁用联动仍待实现。
+登出会撤销传入的 Refresh Token。修改密码会撤销该用户所有 Refresh Token；管理员可撤销指定用户的全部 Refresh Session，禁用/锁定账户也会撤销其 Refresh Session。
+
+当前登录用户还可以使用以下受保护接口：
+
+- `GET /api/v1/users/me/sessions`：列出该账号的 Refresh Session。返回仅包含会话 ID、签发时间、过期时间和撤销时间（Unix 毫秒），不保存或返回令牌原文。
+- `POST /api/v1/users/me/sessions/revoke`：撤销该账号所有 Refresh Session，并递增令牌版本使现有 Access Token 立即失效，返回 `204`。调用后应清除客户端保存的 Access/Refresh Token 并重新登录。
+
+自助注册由运行时键 `identity.registration.enabled` 控制；关闭时 `POST /register` 返回 `503 REGISTRATION_DISABLED`。这是 identity 模块自己的开关，仍由统一运行时配置存储与审计机制承载。
 
 ## 错误信息
 
@@ -53,4 +62,6 @@ JWT 包含用户 ID、用户名、令牌版本和有效权限列表。Refresh To
 
 ## 密钥边界
 
-当前实现会在每次应用启动时生成 RSA 密钥对，因此重启后原 Access Token 失效。生产环境外部密钥（环境变量或挂载文件）尚未接入，当前方式仅适用于本地开发与模板验证，不能直接用于生产部署。
+`local` 默认可在启动时临时生成 RSA 密钥对，因此重启后原 Access Token 会失效。生产 `postgres` Profile 必须同时提供 `APP_JWT_PRIVATE_KEY_PEM` 与 `APP_JWT_PUBLIC_KEY_PEM`，或对应的 `*_PATH` 文件路径；PEM 环境变量中的换行使用 `\n`。不完整或缺失的生产密钥会使应用拒绝启动。
+
+JWT 含 `token_version`。密码、用户状态、角色或权限变化后服务器会递增该版本；每个受保护请求都会比对数据库版本，因此旧 Access Token 不必等待 15 分钟自然过期便会返回 `401 AUTHENTICATION_REQUIRED`。

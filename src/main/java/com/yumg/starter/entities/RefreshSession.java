@@ -43,6 +43,9 @@ public class RefreshSession extends BaseUuidEntity {
 
     public String getUserId() { return userId; }
     public String getFamilyId() { return familyId; }
+    public Instant getIssuedAt() { return issuedAt; }
+    public Instant getExpiresAt() { return expiresAt; }
+    public Instant getRevokedAt() { return revokedAt; }
     public boolean isExpired(Instant now) { return !expiresAt.isAfter(now); }
     public boolean isConsumed() { return consumedAt != null; }
     public boolean isRevoked() { return revokedAt != null; }

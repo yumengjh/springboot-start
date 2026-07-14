@@ -15,7 +15,7 @@ public class ApiErrorWriter {
         response.setContentType("application/json");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setHeader(TraceIdFilter.TRACE_ID_HEADER, error.traceId());
-        response.getWriter().write("{\"code\":\"%s\",\"message\":\"%s\",\"traceId\":\"%s\",\"violations\":[],\"timestamp\":\"%s\"}"
+        response.getWriter().write("{\"code\":\"%s\",\"message\":\"%s\",\"traceId\":\"%s\",\"violations\":[],\"timestamp\":%s}"
                 .formatted(error.code(), error.message(), error.traceId(), error.timestamp()));
     }
 }

@@ -20,6 +20,7 @@ public class ApiException extends RuntimeException {
     public static ApiException rateLimited() {
         return new ApiException(ApiErrorCode.RATE_LIMITED);
     }
+    public static ApiException registrationDisabled() { return new ApiException(ApiErrorCode.REGISTRATION_DISABLED); }
 
     public static ApiException unauthorized() {
         return new ApiException(ApiErrorCode.AUTHENTICATION_REQUIRED);

@@ -21,6 +21,8 @@ public class Role extends AuditedEntity {
     protected Role() {}
     public Role(String code, String displayName) { this.code = code; this.displayName = displayName; }
     public String getCode() { return code; }
+    public String getDisplayName() { return displayName; }
+    public void rename(String displayName) { this.displayName = displayName; }
     public Set<Permission> getPermissions() { return Set.copyOf(permissions); }
     public void grant(Permission permission) { permissions.add(permission); }
     public void revoke(Permission permission) { permissions.remove(permission); }

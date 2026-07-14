@@ -43,7 +43,7 @@ class ApiExceptionHandlerTest {
             .andExpect(jsonPath("$.traceId").isNotEmpty())
             .andExpect(jsonPath("$.violations[0].field").value("name"))
             .andExpect(jsonPath("$.violations[0].message").isNotEmpty())
-            .andExpect(jsonPath("$.timestamp").isNotEmpty());
+            .andExpect(jsonPath("$.timestamp").isNumber());
     }
 
     @Test

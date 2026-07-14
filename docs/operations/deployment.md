@@ -8,22 +8,27 @@
 - Supply the initial administrator variables only when bootstrap is required. Rotate or
   remove the bootstrap secret after successful creation according to the secret
   manager's policy.
-- Mount RSA signing material from a secret manager or secret file. Never bake private
-  keys, database passwords, tokens, or a populated `.env` into the image.
+- Configure both `APP_JWT_PRIVATE_KEY_PEM` and `APP_JWT_PUBLIC_KEY_PEM` through the
+  deployment secret manager, or mount secret files into the container and configure both
+  `APP_JWT_PRIVATE_KEY_PATH` and `APP_JWT_PUBLIC_KEY_PATH`. `compose.yaml` forwards all
+  four variables but does not mount host key paths automatically; PEM variables are the
+  ready-to-use Compose option, while file paths require an explicit read-only secret volume.
+  The `postgres` profile refuses ephemeral JWT keys. Never bake private keys, database
+  passwords, tokens, or a populated `.env` into the image.
 - Configure exact CORS origins. Do not use a wildcard with credentialed browser
   requests.
 - Keep forwarded-header handling disabled unless trusted proxy CIDRs are explicitly
-  configured. The immediate sender must be trusted before `Forwarded` or
-  `X-Forwarded-For` is considered; test the complete load-balancer/proxy chain.
+  configured through `APP_SECURITY_TRUSTED_PROXIES`. The immediate sender must be
+  trusted before `X-Forwarded-For` is considered; test the complete load-balancer/proxy chain.
 - Decide whether Swagger UI should be exposed. OpenAPI/Swagger exposure is configurable
   in production; protect or disable it according to policy.
 - Ensure the runtime identity is non-root and can write only required paths. SQLite
   storage is `/app/data` in the image, but PostgreSQL deployments should not depend on
   container filesystem persistence.
 
-The exact property-to-environment bindings for JWT, trusted proxies, CORS, and Swagger
-must come from the implemented configuration and `.env.example`; the design does not
-define names for them, so deployment manifests should not invent aliases.
+The canonical variable names are documented in `.env.example`; deployment manifests must
+not invent aliases. Runtime CORS policy remains database-backed and is changed through the
+authorized runtime-config API rather than by editing container environment variables.
 
 ## Health probes
 

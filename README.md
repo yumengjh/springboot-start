@@ -40,15 +40,16 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=请替换为强密码
 
 ## 已实现功能
 
-- 注册、登录、RSA JWT、Refresh Token 轮换与当前设备登出
+- 注册、登录、RSA JWT、Refresh Token 轮换、当前设备登出、本人会话列表与退出全部设备
 - 用户查看本人资料、修改显示名、修改密码
-- 数据库 RBAC：初始角色、权限、用户角色分配、角色权限分配
-- 运行时服务治理：动态 CORS、接口禁用、通用与接口级限流、CIDR IP 黑白名单、登录防爆破及审计查询
+- 数据库 RBAC：初始角色/权限、角色与权限目录 CRUD、用户角色分配、角色权限分配
+- 运行时服务治理：动态 CORS、接口禁用、通用与接口级限流、CIDR IP 白黑名单、带有效期的 IP 规则、登录防爆破、请求日志开关、注册开关及审计查询
 - 统一错误响应、Trace ID、SQLite/PostgreSQL Liquibase 迁移
 - Docker、Compose、GitHub Actions 基础文件
 
 详细接口与边界见：
 
+- [全量 API 参考手册](docs/API_REFERENCE.md)
 - [认证与会话](docs/api/authentication.md)
 - [RBAC 权限](docs/api/rbac.md)
 - [运行时服务配置](docs/operations/runtime-settings.md)
@@ -58,7 +59,7 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=请替换为强密码
 
 ## 接口测试页
 
-根目录的 `api-test.html` 是浏览器测试页。先启动服务，再双击打开它；页面默认填写 `admin`（密码不预填），登录后会加载包含已有角色的用户表格、角色权限分组、管理员状态和角色分配操作，以及运行时配置、CORS、接口策略、IP 策略、审计查询和公告示例。可选“保存登录状态”只会把 Refresh Token 保存在当前浏览器的 localStorage；退出登录会撤销并清除它。共享电脑不要启用此选项。
+根目录的 `api-test.html` 是浏览器测试页。先启动服务，再双击打开它；页面默认填写 `admin`（密码不预填），登录后会加载用户管理、角色/权限目录 CRUD、角色权限分组、本人会话、运行时配置、CORS、接口/IP 策略、审计查询和公告示例。可选“保存登录状态”只会把 Refresh Token 保存在当前浏览器的 localStorage；退出登录或“退出全部设备”都会清除它。共享电脑不要启用此选项。
 
 本地从 HTML 文件发起的跨域预检支持 `GET`、`POST`、`PUT`、`PATCH`、`DELETE` 和 `OPTIONS`；因此用户状态更新、角色分配和角色权限更新都可以直接在测试页执行。生产环境应将通配来源改为明确的受信任来源。
 
@@ -77,17 +78,19 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=请替换为强密码
 
 ## API 响应约定
 
-`/api/v1/**` 的成功响应（`204 No Content` 除外）统一为：
+`/api/v1/**` 的成功响应（`204 No Content` 除外）默认统一为：
 
 ```json
 {
   "data": {},
   "traceId": "请求追踪 ID",
-  "timestamp": "2026-07-12T00:00:00Z"
+  "timestamp": 1783814400000
 }
 ```
 
-错误响应使用 `code`、`message`、`traceId`、`violations`、`timestamp`。认证、授权、限流和 Controller 内异常共用这一错误结构；客户端排查时应携带 `traceId`。
+错误响应使用 `code`、`message`、`traceId`、`violations`、`timestamp`。所有对外时间字段使用 Unix 毫秒时间戳，避免 ISO 字符串格式不一致。认证、授权、限流和 Controller 内异常共用这一错误结构；客户端排查时应携带 `traceId`。
+
+默认情况下，所有业务接口都需要 Access Token。要开放一个外部接口，在 Controller 方法或类上标记 `@PublicApi`；它只跳过身份认证，仍然会经过 Trace ID、IP 访问控制、接口禁用和限流。公开内容需要最简响应时可使用 `@PublicApi(minimalResponse = true)`，例如公告公开列表；详情见 [公告示例模块](docs/api/announcements.md)。
 
 请求 DTO 使用 Bean Validation，并启用严格 JSON 反序列化：未知字段会返回 `400 UNKNOWN_FIELD`，不会被静默忽略。路径中的用户 ID、角色和权限编码也会做格式校验。
 
@@ -102,6 +105,6 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=请替换为强密码
 
 ## 当前重要限制
 
-- JWT 密钥当前每次启动自动生成，因此服务重启会让旧 Access Token 失效；生产外部密钥配置待完成。
-- IP 规则当前由运行时字符串配置管理，适合单实例基础模板；带到期时间的数据库规则和分布式计数仍是后续扩展点。
+- `local` Profile 可临时生成 JWT 密钥方便开发；`postgres` Profile 必须配置一对 RSA 私钥/公钥（`APP_JWT_*_PEM` 或 `APP_JWT_*_PATH`）。用户状态、密码、角色或权限变化会递增 `token_version`，旧 Access Token 会立即被拒绝。
+- IP 白黑名单、限流和防爆破计数仍是单实例能力；多实例部署时应替换为 Redis 等共享实现。仅来自 `APP_SECURITY_TRUSTED_PROXIES` 的代理才会读取 `X-Forwarded-For`。
 - 不包含 MySQL、SQL Server、Redis、邮件验证、OAuth、MFA 和前端。

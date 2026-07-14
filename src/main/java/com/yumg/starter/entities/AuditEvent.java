@@ -11,6 +11,7 @@ import java.time.Instant;
 @Entity
 @Table(name = "audit_events")
 public class AuditEvent extends BaseUuidEntity {
+    @Column(name = "actor_id", length = 36) private String actorId;
     @Column(nullable = false, length = 160) private String action;
     @Column(nullable = false, length = 32) private String result;
     @Column(name = "target_type", length = 100) private String targetType;
@@ -19,7 +20,12 @@ public class AuditEvent extends BaseUuidEntity {
     @Column(name = "trace_id", length = 100) private String traceId;
     @Column(name = "metadata_json", columnDefinition = "text") private String metadata;
     protected AuditEvent() {}
-    public AuditEvent(String action, String targetType, String targetId, String traceId, String metadata) { this.action=action; this.result="SUCCESS"; this.targetType=targetType; this.targetId=targetId; this.traceId=traceId; this.metadata=metadata; this.occurredAt=Instant.now(); }
+    public AuditEvent(String actorId, String action, String targetType, String targetId, String result,
+                      String traceId, String metadata) {
+        this.actorId=actorId; this.action=action; this.result=result; this.targetType=targetType;
+        this.targetId=targetId; this.traceId=traceId; this.metadata=metadata; this.occurredAt=Instant.now();
+    }
+    public String getActorId() { return actorId; }
     public String getAction() { return action; }
     public String getResult() { return result; }
     public String getTargetType() { return targetType; }

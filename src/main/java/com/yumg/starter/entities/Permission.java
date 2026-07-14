@@ -13,4 +13,6 @@ public class Permission extends AuditedEntity {
     protected Permission() {}
     public Permission(String code, String description) { this.code = code; this.description = description; }
     public String getCode() { return code; }
+    public String getDescription() { return description; }
+    public void changeDescription(String description) { this.description = description; }
 }

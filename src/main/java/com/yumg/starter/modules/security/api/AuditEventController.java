@@ -11,10 +11,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
 @Validated
 @RequestMapping("/api/v1/system/audit-events")
+@Tag(name = "系统审计") @SecurityRequirement(name = "bearerAuth")
 public class AuditEventController {
     private final AuditService audit;
     public AuditEventController(AuditService audit) { this.audit = audit; }

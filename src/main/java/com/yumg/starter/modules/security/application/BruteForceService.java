@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class BruteForceService {
-    private static final long WINDOW_MILLIS = 15 * 60 * 1000L;
     private final RuntimeSettingService settings;
     private final ConcurrentHashMap<String, Failures> failures = new ConcurrentHashMap<>();
     public BruteForceService(RuntimeSettingService settings) { this.settings = settings; }
@@ -15,7 +14,7 @@ public class BruteForceService {
         if (!settings.enabled("security.brute-force.enabled")) return false;
         long now = Instant.now().toEpochMilli(); int threshold = settings.integer("security.brute-force.failure-threshold");
         Failures value = failures.compute(username, (ignored, current) -> {
-            if (current == null || now - current.startedAt >= WINDOW_MILLIS) return new Failures(now, 1);
+            if (current == null || now - current.startedAt >= settings.integer("security.brute-force.window-seconds") * 1000L) return new Failures(now, 1);
             return new Failures(current.startedAt, current.count + 1);
         });
         return value.count >= threshold;

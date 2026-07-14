@@ -2,6 +2,7 @@ package com.yumg.starter.config;
 
 import com.yumg.starter.common.api.SecurityApiErrorHandler;
 import com.yumg.starter.common.web.TraceIdFilter;
+import com.yumg.starter.common.web.PublicApiRequestMatcher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -11,12 +12,12 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 import com.yumg.starter.modules.security.web.RateLimitFilter;
 import com.yumg.starter.modules.security.web.EndpointPolicyFilter;
 import com.yumg.starter.modules.security.web.IpAccessFilter;
+import com.yumg.starter.modules.security.web.RequestLoggingFilter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.http.HttpMethod;
 import java.util.List;
 import java.util.Arrays;
 import com.yumg.starter.modules.runtimeconfig.application.RuntimeSettingService;
@@ -25,7 +26,8 @@ import com.yumg.starter.modules.runtimeconfig.application.RuntimeSettingService;
 public class SecurityConfiguration {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityApiErrorHandler errors,
-                                            TraceIdFilter traceIdFilter, RateLimitFilter rateLimitFilter, EndpointPolicyFilter endpointPolicyFilter, IpAccessFilter ipAccessFilter) throws Exception {
+                                            TraceIdFilter traceIdFilter, RateLimitFilter rateLimitFilter, EndpointPolicyFilter endpointPolicyFilter, IpAccessFilter ipAccessFilter, RequestLoggingFilter requestLoggingFilter,
+                                            PublicApiRequestMatcher publicApiRequestMatcher) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
@@ -34,12 +36,13 @@ public class SecurityConfiguration {
                 .addFilterBefore(endpointPolicyFilter, SecurityContextHolderFilter.class)
                 .addFilterBefore(ipAccessFilter, SecurityContextHolderFilter.class)
                 .addFilterBefore(rateLimitFilter, SecurityContextHolderFilter.class)
+                .addFilterAfter(requestLoggingFilter, SecurityContextHolderFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh",
                                 "/api/v1/auth/logout", "/actuator/health/**",
                                 "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/announcements").permitAll()
+                        .requestMatchers(publicApiRequestMatcher).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(errors)

@@ -1,6 +1,5 @@
 package com.yumg.starter.common.api;
 
-import java.time.Instant;
 import java.util.List;
 
 public record ApiError(
@@ -8,7 +7,7 @@ public record ApiError(
     String message,
     String traceId,
     List<FieldViolation> violations,
-    Instant timestamp
+    long timestamp
 ) {
     public ApiError {
         violations = violations == null ? List.of() : List.copyOf(violations);

@@ -1,10 +1,12 @@
 package com.yumg.starter.common.api;
 
 import com.yumg.starter.common.web.TraceIdFilter;
-import java.time.Instant;
+import com.yumg.starter.common.web.PublicApi;
+import com.yumg.starter.common.web.PublicApiAccess;
 import java.util.UUID;
 import org.slf4j.MDC;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
@@ -28,9 +30,19 @@ public class ApiResponseAdvice implements ResponseBodyAdvice<Object> {
                 || body instanceof ApiError || body instanceof ApiResponse<?>) {
             return body;
         }
+        PublicApi publicApi = publicApi(returnType);
+        if (publicApi != null && publicApi.minimalResponse()
+                && !PublicApiAccess.hasAuthority(publicApi.detailedAuthority())) return body;
         String traceId = response.getHeaders().getFirst(TraceIdFilter.TRACE_ID_HEADER);
         if (traceId == null || traceId.isBlank()) traceId = MDC.get(TraceIdFilter.TRACE_ID_MDC_KEY);
         if (traceId == null || traceId.isBlank()) traceId = UUID.randomUUID().toString().replace("-", "");
-        return new ApiResponse<>(body, traceId, Instant.now());
+        return new ApiResponse<>(body, traceId, System.currentTimeMillis());
+    }
+
+    private PublicApi publicApi(MethodParameter returnType) {
+        PublicApi methodAnnotation = returnType.getMethod() == null ? null
+                : AnnotatedElementUtils.findMergedAnnotation(returnType.getMethod(), PublicApi.class);
+        return methodAnnotation != null ? methodAnnotation
+                : AnnotatedElementUtils.findMergedAnnotation(returnType.getContainingClass(), PublicApi.class);
     }
 }
