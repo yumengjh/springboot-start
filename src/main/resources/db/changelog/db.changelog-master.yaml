@@ -7,3 +7,5 @@ databaseChangeLog:
       file: db/changelog/changes/003-announcement.yaml
   - include:
       file: db/changelog/changes/004-audit-event-version.yaml
+  - include:
+      file: db/changelog/changes/005-convert-postgres-instant-columns.yaml

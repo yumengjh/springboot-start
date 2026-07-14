@@ -55,7 +55,7 @@ jobs:
           # Any future .trivyignore entry must include a reviewed rationale and expiry.
 
       - name: Upload scan results
-        if: always()
+        if: always() && hashFiles('trivy-results.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif

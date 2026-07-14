@@ -13,6 +13,15 @@ public class InstantStringConverter implements AttributeConverter<Instant, Strin
 
     @Override
     public Instant convertToEntityAttribute(String value) {
-        return value == null ? null : Instant.parse(value);
+        if (value == null) {
+            return null;
+        }
+        if (value.chars().allMatch(Character::isDigit)) {
+            return Instant.ofEpochMilli(Long.parseLong(value));
+        }
+        if (value.indexOf('T') < 0) {
+            return Instant.parse(value.replace(' ', 'T') + "Z");
+        }
+        return Instant.parse(value);
     }
 }

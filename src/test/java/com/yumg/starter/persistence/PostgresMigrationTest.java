@@ -61,6 +61,12 @@ class PostgresMigrationTest {
         assertThat(foreignKeyTargets("role_permissions")).contains("roles", "permissions");
         assertThat(columnType("users", "id")).containsExactly("character varying", 36);
         assertThat(columnType("users", "status")).containsExactly("character varying", 32);
+        assertThat(columnType("announcements", "created_at"))
+                .containsExactly("character varying", 64);
+        assertThat(columnType("announcements", "published_at"))
+                .containsExactly("character varying", 64);
+        assertThat(columnType("refresh_sessions", "issued_at"))
+                .containsExactly("character varying", 64);
     }
 
     private List<String> uniqueColumnGroups(String table) {
