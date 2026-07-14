@@ -43,10 +43,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Scan exact image artifact for unfixed critical vulnerabilities
+      - name: Load exact image artifact for scanning
+        run: docker load --input /tmp/image.tar
+
+      - name: Scan loaded image artifact for unfixed critical vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: /tmp/image.tar
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL
