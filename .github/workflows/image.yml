@@ -46,12 +46,13 @@ jobs:
       - name: Scan exact image artifact for unfixed critical vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          input: /tmp/image.tar
+          image-ref: /tmp/image.tar
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL
           ignore-unfixed: true
           exit-code: "1"
+          scanners: vuln
           # The job blocks only critical findings with an available remediation. Unfixed
           # upstream findings remain visible in SARIF instead of permanently blocking release.
 
