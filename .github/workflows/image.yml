@@ -53,11 +53,11 @@ jobs:
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL
+          limit-severities-for-sarif: true
           ignore-unfixed: true
           exit-code: "1"
           scanners: vuln
-          # The job blocks only critical findings with an available remediation. Unfixed
-          # upstream findings remain visible in SARIF instead of permanently blocking release.
+          # The job blocks only critical findings with an available remediation.
 
       - name: Upload scan results
         if: always() && hashFiles('trivy-results.sarif') != ''
