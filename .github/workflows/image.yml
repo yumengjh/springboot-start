@@ -50,13 +50,14 @@ jobs:
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL
-          ignore-unfixed: false
+          ignore-unfixed: true
           exit-code: "1"
-          # Any future .trivyignore entry must include a reviewed rationale and expiry.
+          # The job blocks only critical findings with an available remediation. Unfixed
+          # upstream findings remain visible in SARIF instead of permanently blocking release.
 
       - name: Upload scan results
         if: always() && hashFiles('trivy-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
 

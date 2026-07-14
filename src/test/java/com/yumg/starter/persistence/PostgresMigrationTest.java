@@ -15,7 +15,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @ActiveProfiles("postgres")
-@SpringBootTest
+@SpringBootTest(properties = "app.jwt.allow-ephemeral-key=true")
 @EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 class PostgresMigrationTest {
 
