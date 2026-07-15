@@ -42,4 +42,5 @@ class RbacServiceTest {
         verify(users).findDistinctByRoles_Code("AFFECTED");
         verify(permissions).delete(permission);
     }
+
 }

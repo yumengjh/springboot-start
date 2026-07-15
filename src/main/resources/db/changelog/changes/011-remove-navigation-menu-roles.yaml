@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - changeSet:
+      id: 011-remove-navigation-menu-roles
+      author: starter
+      changes:
+        - dropTable:
+            tableName: navigation_menu_roles

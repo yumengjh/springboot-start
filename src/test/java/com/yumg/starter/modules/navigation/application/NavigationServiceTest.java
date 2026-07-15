@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class NavigationServiceTest {
@@ -39,6 +40,32 @@ class NavigationServiceTest {
         var routes = service().routes(Set.of("system:menu:read"));
 
         assertThat(routes).extracting(route -> route.code()).containsExactly("allowed");
+    }
+
+    @Test
+    void routesExcludeChildrenWhenTheirParentMenuIsPaused() {
+        NavigationMenu parent = new NavigationMenu(null, "system", "System", "/system", null,
+                null, 0, NavigationMenuType.DIRECTORY, null, true, false, false, true);
+        ReflectionTestUtils.setField(parent, "id", "system-id");
+        NavigationMenu child = page("user-management", "/system/users", "user-management",
+                "system:user:read", true);
+        child.moveTo(parent.getId());
+        when(menus.findAllByOrderBySortOrderAscCodeAsc()).thenReturn(List.of(parent, child));
+
+        var routes = service().routes(Set.of("system:user:read"));
+
+        assertThat(routes).isEmpty();
+    }
+
+    @Test
+    void updatesTheStatusOfAnIntegratedMenuWithoutAllowingStructuralEdits() {
+        NavigationMenu builtin = page("home", "/welcome", "welcome", null, true);
+        when(menus.findById("builtin")).thenReturn(Optional.of(builtin));
+
+        var response = service().setEnabled("builtin", false);
+
+        assertThat(response.enabled()).isFalse();
+        verify(audit).event("NAVIGATION_MENU_STATUS_UPDATED", "NavigationMenu", "home");
     }
 
     @Test

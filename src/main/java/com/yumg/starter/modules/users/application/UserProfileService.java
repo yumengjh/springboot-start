@@ -12,7 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.yumg.starter.modules.auth.infrastructure.RefreshSessionRepository;
 import com.yumg.starter.modules.users.api.dto.SessionResponse;
+import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class UserProfileService {
@@ -42,7 +45,15 @@ public class UserProfileService {
         user.changePasswordHash(passwordEncoder.encode(request.newPassword()));
         tokens.revokeAllForUser(userId);
     }
-    @Transactional(readOnly = true) public List<SessionResponse> sessions(String userId) { return sessions.findAllByUserIdOrderByIssuedAtDesc(userId).stream().map(SessionResponse::from).toList(); }
+    @Transactional(readOnly = true)
+    public List<SessionResponse> sessions(String userId) {
+        Instant now = Instant.now();
+        return sessions.findAllByUserIdOrderByIssuedAtDesc(userId).stream()
+                .collect(Collectors.groupingBy(com.yumg.starter.entities.RefreshSession::getFamilyId))
+                .values().stream().map(family -> SessionResponse.from(family, now))
+                .filter(session -> "ACTIVE".equals(session.status()))
+                .sorted(Comparator.comparing(SessionResponse::lastActiveAt).reversed()).toList();
+    }
     @Transactional public void revokeAllSessions(String userId) { find(userId).invalidateSessions(); tokens.revokeAllForUser(userId); }
     private User find(String userId) { return users.findById(userId).orElseThrow(ApiException::notFound); }
 }

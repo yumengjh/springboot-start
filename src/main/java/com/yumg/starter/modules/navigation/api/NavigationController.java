@@ -1,6 +1,7 @@
 package com.yumg.starter.modules.navigation.api;
 
 import com.yumg.starter.modules.navigation.api.dto.NavigationMenuRequest;
+import com.yumg.starter.modules.navigation.api.dto.NavigationMenuEnabledRequest;
 import com.yumg.starter.modules.navigation.api.dto.NavigationMenuResponse;
 import com.yumg.starter.modules.navigation.api.dto.NavigationRouteResponse;
 import com.yumg.starter.modules.navigation.application.NavigationService;
@@ -18,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -62,6 +64,14 @@ public class NavigationController {
     public NavigationMenuResponse update(@PathVariable @Pattern(regexp = "[0-9a-fA-F-]{36}") String id,
             @Valid @RequestBody NavigationMenuRequest request) {
         return navigation.update(id, request);
+    }
+
+    @PatchMapping("/menus/{id}/enabled")
+    @PreAuthorize("hasAuthority('system:menu:write')")
+    public NavigationMenuResponse setEnabled(
+            @PathVariable @Pattern(regexp = "[0-9a-fA-F-]{36}") String id,
+            @Valid @RequestBody NavigationMenuEnabledRequest request) {
+        return navigation.setEnabled(id, request.enabled());
     }
 
     @DeleteMapping("/menus/{id}")

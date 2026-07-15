@@ -87,6 +87,8 @@ public class NavigationMenu extends AuditedEntity {
     public boolean isKeepAlive() { return keepAlive; }
     public boolean isSystemManaged() { return systemManaged; }
 
+    public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
     public void moveTo(String parentId) {
         this.parentId = parentId;
     }

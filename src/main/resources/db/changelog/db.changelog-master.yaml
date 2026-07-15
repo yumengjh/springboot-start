@@ -17,3 +17,7 @@ databaseChangeLog:
       file: db/changelog/changes/008-navigation.yaml
   - include:
       file: db/changelog/changes/009-normalize-refresh-session-persistence.yaml
+  - include:
+      file: db/changelog/changes/010-navigation-menu-roles.yaml
+  - include:
+      file: db/changelog/changes/011-remove-navigation-menu-roles.yaml

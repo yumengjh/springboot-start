@@ -199,7 +199,7 @@ Authorization: Bearer <accessToken>
 
 ### `GET /api/v1/users/me/sessions`
 
-列出当前用户全部 Refresh Session；不会返回 Refresh Token 原文、设备指纹或密码。
+按当前有效的登录会话列出当前用户的 Refresh Session。Refresh Token 轮换记录会按会话族聚合，因此重复刷新页面不会产生重复的“有效会话”；已退出或过期的历史会话不会返回，也不会返回令牌原文、设备指纹或密码。
 
 | 成功 | `200 OK` |
 | `data` | Session 数组 |
@@ -207,7 +207,7 @@ Authorization: Bearer <accessToken>
 每项：
 
 ```json
-{ "id": "uuid", "issuedAt": 1784000000000, "expiresAt": 1786592000000, "revokedAt": null }
+{ "firstIssuedAt": 1784000000000, "lastActiveAt": 1784000300000, "expiresAt": 1786592000000, "status": "ACTIVE" }
 ```
 
 ### `POST /api/v1/users/me/sessions/revoke`
@@ -485,8 +485,10 @@ Authorization: Bearer <accessToken>
 `data` 是如下数组：
 
 ```json
-[{ "key": "security.rate-limit.capacity", "type": "INTEGER", "value": "120" }]
+[{ "key": "security.rate-limit.capacity", "displayName": "全局请求上限", "description": "每个客户端在全局限流窗口内最多可发起的请求次数。", "type": "INTEGER", "value": "120" }]
 ```
+
+`displayName` 是管理界面可直接显示的中文名称，`description` 说明配置的作用；`key` 仍是更新接口使用的稳定技术标识。
 
 ### `PUT /api/v1/system/runtime-config/{key}`
 

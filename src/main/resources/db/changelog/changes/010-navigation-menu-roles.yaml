@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: 010-navigation-menu-roles
+      author: starter
+      changes:
+        - createTable:
+            tableName: navigation_menu_roles
+            columns:
+              - column: { name: menu_id, type: varchar(36), constraints: { nullable: false, foreignKeyName: fk_navigation_menu_roles_menu, references: navigation_menus(id) } }
+              - column: { name: role_id, type: varchar(36), constraints: { nullable: false, foreignKeyName: fk_navigation_menu_roles_role, references: roles(id) } }
+        - createIndex:
+            tableName: navigation_menu_roles
+            indexName: uk_navigation_menu_roles
+            unique: true
+            columns:
+              - column: { name: menu_id }
+              - column: { name: role_id }

@@ -48,8 +48,6 @@ public class NavigationService {
         Map<String, NavigationMenu> byId = all.stream()
                 .collect(Collectors.toMap(NavigationMenu::getId, Function.identity(), (left, right) -> left));
         List<NavigationMenu> permitted = all.stream()
-                .filter(NavigationMenu::isVisible)
-                .filter(NavigationMenu::isEnabled)
                 .filter(menu -> permitted(menu, grantedPermissions, byId))
                 .toList();
         return routeTree(permitted);
@@ -82,6 +80,14 @@ public class NavigationService {
                 request.menuType(), normalize(request.requiredPermission()), request.visible(),
                 request.enabled(), request.keepAlive());
         audit.event("NAVIGATION_MENU_UPDATED", "NavigationMenu", menu.getCode());
+        return NavigationMenuResponse.from(menu, List.of());
+    }
+
+    @Transactional
+    public NavigationMenuResponse setEnabled(String id, boolean enabled) {
+        NavigationMenu menu = menu(id);
+        menu.setEnabled(enabled);
+        audit.event("NAVIGATION_MENU_STATUS_UPDATED", "NavigationMenu", menu.getCode());
         return NavigationMenuResponse.from(menu, List.of());
     }
 
@@ -125,6 +131,9 @@ public class NavigationService {
 
     private boolean permitted(NavigationMenu menu, Set<String> grantedPermissions,
             Map<String, NavigationMenu> byId) {
+        if (!menu.isVisible() || !menu.isEnabled()) {
+            return false;
+        }
         if (menu.getRequiredPermission() != null
                 && !grantedPermissions.contains(menu.getRequiredPermission())) {
             return false;

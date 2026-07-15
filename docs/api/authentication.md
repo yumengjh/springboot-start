@@ -45,7 +45,7 @@ JWT 包含用户 ID、用户名、令牌版本和有效权限列表。Refresh To
 
 当前登录用户还可以使用以下受保护接口：
 
-- `GET /api/v1/users/me/sessions`：列出该账号的 Refresh Session。返回仅包含会话 ID、签发时间、过期时间和撤销时间（Unix 毫秒），不保存或返回令牌原文。
+- `GET /api/v1/users/me/sessions`：按当前有效的登录会话列出该账号的 Refresh Session。每个会话族只返回一项，不会因令牌轮换而产生重复会话；返回首次登录、最近活动、过期时间和状态（Unix 毫秒），不保存或返回令牌原文。
 - `POST /api/v1/users/me/sessions/revoke`：撤销该账号所有 Refresh Session，并递增令牌版本使现有 Access Token 立即失效，返回 `204`。调用后应清除客户端保存的 Access/Refresh Token 并重新登录。
 
 自助注册由运行时键 `identity.registration.enabled` 控制；关闭时 `POST /register` 返回 `503 REGISTRATION_DISABLED`。这是 identity 模块自己的开关，仍由统一运行时配置存储与审计机制承载。
