@@ -24,7 +24,8 @@ class SqliteMigrationTest {
 
     private static final Set<String> CORE_TABLES = Set.of("users", "roles", "permissions",
             "user_roles", "role_permissions", "refresh_sessions", "system_settings",
-            "ip_access_rules", "audit_events", "announcements", "navigation_menus");
+            "ip_access_rules", "audit_events", "announcements", "navigation_menus",
+            "resume_documents");
 
     @TempDir
     static Path temporaryDirectory;
@@ -70,6 +71,9 @@ class SqliteMigrationTest {
         assertThat(columnType("users", "id")).isEqualToIgnoringCase("varchar(36)");
         assertThat(columnType("users", "status")).isEqualToIgnoringCase("varchar(32)");
         assertThat(columnType("audit_events", "version")).isEqualToIgnoringCase("bigint");
+        assertThat(columnType("resume_documents", "content")).isEqualToIgnoringCase("text");
+        assertThat(columnType("resume_documents", "schema_version")).isEqualToIgnoringCase("integer");
+        assertThat(columnType("resume_documents", "version")).isEqualToIgnoringCase("bigint");
     }
 
     @Test
