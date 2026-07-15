@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: 007-restore-refresh-session-indexes
+      author: starter
+      changes:
+        # SQLite rebuilds the table for addColumn and drops its secondary indexes.
+        - createIndex:
+            tableName: refresh_sessions
+            indexName: uk_refresh_sessions_token_hash_recreated
+            unique: true
+            columns:
+              - column: { name: token_hash }
+        - createIndex:
+            tableName: refresh_sessions
+            indexName: idx_refresh_sessions_token_hash
+            columns:
+              - column: { name: token_hash }

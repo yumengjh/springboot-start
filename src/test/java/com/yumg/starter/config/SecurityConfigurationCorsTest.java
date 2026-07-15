@@ -28,5 +28,6 @@ class SecurityConfigurationCorsTest {
 
         assertThat(configuration.getAllowedMethods())
                 .containsExactlyInAnyOrderElementsOf(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        assertThat(configuration.getAllowCredentials()).isTrue();
     }
 }

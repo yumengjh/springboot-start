@@ -114,7 +114,7 @@ Authorization: Bearer <accessToken>
 
 ### `POST /api/v1/auth/login`
 
-密码登录并签发一组短期 Access Token 和可轮换 Refresh Token。
+密码登录并签发短期 Access Token，同时设置可轮换的 HttpOnly Refresh Cookie。
 
 | 项目 | 说明 |
 | --- | --- |
@@ -125,7 +125,7 @@ Authorization: Bearer <accessToken>
 请求体：
 
 ```json
-{ "username": "admin", "password": "your-password" }
+{ "username": "admin", "password": "your-password", "rememberMe": true }
 ```
 
 `username`、`password` 均不能为空，最大分别为 32、128 字符。成功 `data`：
@@ -133,29 +133,22 @@ Authorization: Bearer <accessToken>
 ```json
 {
   "accessToken": "eyJ...",
-  "refreshToken": "opaque-one-time-token",
   "tokenType": "Bearer",
   "expiresIn": 900
 }
 ```
 
-`accessToken` 有效期为 900 秒；`refreshToken` 只在客户端保存原文，服务端只保存其哈希。
+`accessToken` 有效期为 900 秒。Refresh Token 仅通过 `Set-Cookie` 写入 `HttpOnly; SameSite=Strict; Path=/api/v1/auth` Cookie，服务端只保存其哈希。`rememberMe=true` 使 Cookie 保留 30 天；否则它在浏览器关闭时失效。
 
 ### `POST /api/v1/auth/refresh`
 
-消耗当前 Refresh Token，签发新的 Access/Refresh Token。客户端必须原子替换两者。
+消耗 Cookie 中的当前 Refresh Token，签发新的 Access Token 并轮换 Cookie。
 
 | 项目 | 说明 |
 | --- | --- |
-| 鉴权 | 公开（使用请求体中的 Refresh Token） |
-| 成功 | `200 OK`，返回与登录相同的 `TokenResponse` |
+| 鉴权 | 公开（使用 HttpOnly Refresh Cookie） |
+| 成功 | `200 OK`，返回与登录相同的 Access Token 响应并更新 Cookie |
 | 特有错误 | `401 AUTHENTICATION_REQUIRED`（过期、撤销、错误或重复使用的 Token） |
-
-请求体：
-
-```json
-{ "refreshToken": "opaque-one-time-token" }
-```
 
 旧 Refresh Token 被重复使用时，该 Token 家族会被撤销。
 
@@ -165,10 +158,10 @@ Authorization: Bearer <accessToken>
 
 | 项目 | 说明 |
 | --- | --- |
-| 鉴权 | 公开（使用请求体中的 Refresh Token） |
+| 鉴权 | 公开（使用 HttpOnly Refresh Cookie） |
 | 成功 | `204 No Content` |
 
-请求体与刷新接口相同。无论客户端是否还保存 Access Token，退出后都应从本地清除两种 Token。
+没有请求体。服务会清除 Cookie；浏览器客户端还应清除内存中的 Access Token。
 
 ## 3. 当前用户
 
@@ -179,7 +172,7 @@ Authorization: Bearer <accessToken>
 读取当前 Access Token 对应账号。
 
 | 成功 | `200 OK` |
-| `data` | `id`、`username`、`displayName`、`status` |
+| `data` | `id`、`username`、`displayName`、`status`、`roles`、`permissions` |
 
 ### `PATCH /api/v1/users/me`
 
@@ -414,6 +407,71 @@ Authorization: Bearer <accessToken>
 | 权限 | `system:role:write` |
 | 成功 | `200 OK`，空业务数据 |
 | 效果 | 拥有该角色的用户旧 Token 立即失效。 |
+
+## 5.5 动态导航与菜单管理
+
+动态导航只返回内部页面。后端下发的是受控 `componentKey`，不是文件路径；允许值为 `welcome`、`permission-page`、`menu-management`、`user-management`、`rbac-management`、`runtime-config`、`ip-rule-management`、`audit-log`、`announcement-management`、`account-security`。外链与 iframe 不支持。启动器会创建首页、系统管理、内容管理和个人中心下的内置页面，均不可删除或修改。
+
+管理后台的菜单与所需读权限如下；前端仅以权限隐藏写入控件，后端 `@PreAuthorize` 才是最终授权边界。
+
+| 页面 | 路径 | 组件键 | 访问权限 |
+| --- | --- | --- | --- |
+| 用户管理 | `/system/users` | `user-management` | `system:user:read` |
+| 角色与权限 | `/system/rbac` | `rbac-management` | `system:role:read` |
+| 菜单管理 | `/system/menu` | `menu-management` | `system:menu:read` |
+| 运行配置 | `/system/config` | `runtime-config` | `system:config:read` |
+| IP 访问规则 | `/system/ip-rules` | `ip-rule-management` | `system:config:read` |
+| 审计日志 | `/system/audit` | `audit-log` | `system:audit:read` |
+| 公告管理 | `/content/announcements` | `announcement-management` | `example:announcement:read` |
+| 账户安全 | `/account/security` | `account-security` | 已登录 |
+
+### `GET /api/v1/navigation/routes`
+
+返回当前已认证用户可访问的路由树。服务会过滤 `visible=false`、`enabled=false`、以及 `requiredPermission` 不在 JWT 权限声明内的菜单；父级不可访问时子级也不会提升为根菜单。
+
+| 鉴权 | 有效 Bearer Token，无额外权限 |
+| 成功 | `200 OK` |
+
+每个 `data` 元素包含：`code`、`path`、`componentKey`、`title`、`icon`、`rank`、`keepAlive`、`requiredPermission` 和递归的 `children`。
+
+### `GET /api/v1/navigation/menus`
+
+读取完整菜单管理树。
+
+| 权限 | `system:menu:read` |
+| 成功 | `200 OK` |
+
+### `POST /api/v1/navigation/menus`
+
+创建菜单。
+
+| 权限 | `system:menu:write` |
+| 成功 | `201 Created` |
+
+请求体：
+
+```json
+{
+  "parentId": null,
+  "code": "menu-manager",
+  "title": "菜单管理",
+  "routePath": "/system/menu",
+  "componentKey": "menu-management",
+  "icon": "Menu",
+  "sortOrder": 100,
+  "menuType": "PAGE",
+  "requiredPermission": "system:menu:read",
+  "visible": true,
+  "enabled": true,
+  "keepAlive": false
+}
+```
+
+`code` 匹配 `[a-z][a-z0-9-]{1,99}`，`routePath` 必须为内部绝对路径。`PAGE` 必须使用受控组件键；`DIRECTORY` 不得设置组件键。若有 `parentId`，父级必须存在且为目录。`requiredPermission` 留空表示所有登录用户可见，否则必须是现有权限编码。
+
+### `PUT /api/v1/navigation/menus/{id}` 与 `DELETE /api/v1/navigation/menus/{id}`
+
+两者均需 `system:menu:write`。更新返回 `200 OK`，删除返回 `204 No Content`。菜单编码不可变更；删除有子菜单的条目、以及修改或删除内置条目，返回 `409 CONFLICT`。不存在的父级、权限或菜单 ID 返回 `404 NOT_FOUND`。
 
 ## 6. 运行时服务治理
 
@@ -683,6 +741,8 @@ Actuator 当前使用 Spring Security 的通用认证规则，不要求额外 `s
 | `system:role:read` | 查询角色和权限目录。 |
 | `system:role:write` | 角色/权限 CRUD、角色权限授予/撤销。 |
 | `system:role:assign` | 给用户分配/移除角色。 |
+| `system:menu:read` | 读取完整菜单树。 |
+| `system:menu:write` | 创建、修改、删除非内置菜单。 |
 | `system:config:read` | 读取运行时配置与持久化 IP 规则。 |
 | `system:config:write` | 修改运行时配置、创建/删除持久化 IP 规则。 |
 | `system:audit:read` | 查询审计日志。 |

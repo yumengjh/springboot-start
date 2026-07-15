@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-refresh-session-persistence
+      author: starter
+      changes:
+        - addColumn:
+            tableName: refresh_sessions
+            columns:
+              - column:
+                  name: persistent
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

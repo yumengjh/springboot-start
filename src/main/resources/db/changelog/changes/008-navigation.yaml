@@ -1,0 +1,31 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-navigation
+      author: starter
+      changes:
+        - createTable:
+            tableName: navigation_menus
+            columns:
+              - column: { name: id, type: varchar(36), constraints: { primaryKey: true, nullable: false } }
+              - column: { name: parent_id, type: varchar(36) }
+              - column: { name: code, type: varchar(100), constraints: { nullable: false, unique: true, uniqueConstraintName: uk_navigation_menus_code } }
+              - column: { name: title, type: varchar(160), constraints: { nullable: false } }
+              - column: { name: route_path, type: varchar(200), constraints: { nullable: false, unique: true, uniqueConstraintName: uk_navigation_menus_route_path } }
+              - column: { name: component_key, type: varchar(100) }
+              - column: { name: icon, type: varchar(100) }
+              - column: { name: sort_order, type: int, defaultValueNumeric: 0, constraints: { nullable: false } }
+              - column: { name: menu_type, type: varchar(20), constraints: { nullable: false } }
+              - column: { name: required_permission, type: varchar(160) }
+              - column: { name: visible, type: boolean, defaultValueBoolean: true, constraints: { nullable: false } }
+              - column: { name: enabled, type: boolean, defaultValueBoolean: true, constraints: { nullable: false } }
+              - column: { name: keep_alive, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+              - column: { name: system_managed, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+              - column: { name: version, type: bigint, defaultValueNumeric: 0, constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: updated_at, type: timestamp with time zone, constraints: { nullable: false } }
+        - createIndex:
+            tableName: navigation_menus
+            indexName: idx_navigation_menus_parent_sort
+            columns:
+              - column: { name: parent_id }
+              - column: { name: sort_order }

@@ -45,12 +45,13 @@ public class AuthenticationService implements AuthenticationUseCase {
             audit.event("LOGIN_FAILED","User",user.getId(),"FAILURE","{\"reason\":\"invalid_credentials\"}"); throw ApiException.invalidCredentials();
         }
         bruteForce.clear(username);
-        TokenResponse response = tokens.issue(user); audit.event("LOGIN_SUCCEEDED","User",user.getId()); return response;
+        TokenResponse response = tokens.issue(user, request.rememberMe()); audit.event("LOGIN_SUCCEEDED","User",user.getId()); return response;
     }
 
     @Override
     @Transactional(noRollbackFor = ApiException.class)
     public TokenResponse refresh(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) throw ApiException.unauthorized();
         String tokenHash = TokenService.sha256(refreshToken);
         var session = tokens.findSession(tokenHash).orElseThrow(ApiException::unauthorized);
         User user = users.findById(session.getUserId()).orElseThrow(ApiException::unauthorized);
@@ -63,6 +64,7 @@ public class AuthenticationService implements AuthenticationUseCase {
     @Override
     @Transactional
     public void logout(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) return;
         tokens.revoke(refreshToken); audit.event("LOGOUT","RefreshSession",null);
     }
 }

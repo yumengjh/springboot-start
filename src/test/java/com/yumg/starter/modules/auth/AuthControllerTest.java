@@ -2,6 +2,7 @@ package com.yumg.starter.modules.auth;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.yumg.starter.modules.auth.api.AuthController;
@@ -29,7 +30,7 @@ class AuthControllerTest {
             public com.yumg.starter.modules.auth.api.dto.TokenResponse login(
                     com.yumg.starter.modules.auth.api.dto.LoginRequest request) {
                 return new com.yumg.starter.modules.auth.api.dto.TokenResponse(
-                        "access", "refresh", "Bearer", 900);
+                        "access", "refresh", "Bearer", 900, true);
             }
 
             @Override
@@ -41,7 +42,7 @@ class AuthControllerTest {
             public void logout(String refreshToken) {
             }
         };
-        mvc = MockMvcBuilders.standaloneSetup(new AuthController(registrationService, authenticationService))
+        mvc = MockMvcBuilders.standaloneSetup(new AuthController(registrationService, authenticationService, false))
                 .setMessageConverters(new MappingJackson2HttpMessageConverter())
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
@@ -73,12 +74,17 @@ class AuthControllerTest {
     }
 
     @Test
-    void returnsAccessAndRefreshTokensForLogin() throws Exception {
+    void writesPersistentHttpOnlyRefreshCookieAndNeverReturnsItInLoginBody() throws Exception {
         mvc.perform(post("/api/v1/auth/login").contentType("application/json")
-                        .content("{\"username\":\"alice\",\"password\":\"correct-horse-battery\"}"))
+                        .content("{\"username\":\"alice\",\"password\":\"correct-horse-battery\",\"rememberMe\":true}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("access"))
-                .andExpect(jsonPath("$.refreshToken").value("refresh"))
-                .andExpect(jsonPath("$.tokenType").value("Bearer"));
+                .andExpect(jsonPath("$.refreshToken").doesNotExist())
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.allOf(
+                        org.hamcrest.Matchers.containsString("refresh_token=refresh"),
+                        org.hamcrest.Matchers.containsString("HttpOnly"),
+                        org.hamcrest.Matchers.containsString("SameSite=Strict"),
+                        org.hamcrest.Matchers.containsString("Max-Age=2592000"))));
     }
 }

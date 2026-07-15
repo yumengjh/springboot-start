@@ -18,6 +18,8 @@ server:
   forward-headers-strategy: none
 
 app:
+  auth:
+    refresh-cookie-secure: ${APP_AUTH_REFRESH_COOKIE_SECURE:false}
   security:
     trusted-proxies: ${APP_SECURITY_TRUSTED_PROXIES:}
 

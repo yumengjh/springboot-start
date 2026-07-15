@@ -38,8 +38,8 @@ public class TokenService {
     }
 
     @Transactional
-    public TokenResponse issue(User user) {
-        return issue(user, UUID.randomUUID().toString());
+    public TokenResponse issue(User user, boolean persistent) {
+        return issue(user, UUID.randomUUID().toString(), persistent);
     }
 
     @Transactional
@@ -56,7 +56,7 @@ public class TokenService {
             throw ApiException.unauthorized();
         }
         session.consume(now);
-        return issue(user, session.getFamilyId());
+        return issue(user, session.getFamilyId(), session.isPersistent());
     }
 
     @Transactional
@@ -74,12 +74,12 @@ public class TokenService {
         return refreshSessions.findByTokenHash(tokenHash);
     }
 
-    private TokenResponse issue(User user, String familyId) {
+    private TokenResponse issue(User user, String familyId, boolean persistent) {
         Instant now = Instant.now();
         Instant accessExpiry = now.plus(15, ChronoUnit.MINUTES);
         String rawRefreshToken = newRefreshToken();
         refreshSessions.save(new RefreshSession(user.getId(), familyId,
-                sha256(rawRefreshToken), now, now.plus(30, ChronoUnit.DAYS)));
+                sha256(rawRefreshToken), now, now.plus(30, ChronoUnit.DAYS), persistent));
         JwtClaimsSet claims = JwtClaimsSet.builder().issuer("springboot-start").subject(user.getId())
                 .issuedAt(now).expiresAt(accessExpiry).id(UUID.randomUUID().toString())
                 .claim("username", user.getUsername()).claim("token_version", user.getTokenVersion())
@@ -88,7 +88,7 @@ public class TokenService {
                 .build();
         String accessToken = encoder.encode(JwtEncoderParameters.from(
                 JwsHeader.with(SignatureAlgorithm.RS256).build(), claims)).getTokenValue();
-        return new TokenResponse(accessToken, rawRefreshToken, "Bearer", 900);
+        return new TokenResponse(accessToken, rawRefreshToken, "Bearer", 900, persistent);
     }
 
     static String sha256(String value) {

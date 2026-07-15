@@ -29,16 +29,19 @@ public class RefreshSession extends BaseUuidEntity {
     @Column(name = "revoked_at")
     @Convert(converter = InstantStringConverter.class)
     private Instant revokedAt;
+    @Column(name = "persistent", nullable = false)
+    private boolean persistent;
 
     protected RefreshSession() {}
 
     public RefreshSession(String userId, String familyId, String tokenHash, Instant issuedAt,
-                          Instant expiresAt) {
+                          Instant expiresAt, boolean persistent) {
         this.userId = userId;
         this.familyId = familyId;
         this.tokenHash = tokenHash;
         this.issuedAt = issuedAt;
         this.expiresAt = expiresAt;
+        this.persistent = persistent;
     }
 
     public String getUserId() { return userId; }
@@ -46,6 +49,7 @@ public class RefreshSession extends BaseUuidEntity {
     public Instant getIssuedAt() { return issuedAt; }
     public Instant getExpiresAt() { return expiresAt; }
     public Instant getRevokedAt() { return revokedAt; }
+    public boolean isPersistent() { return persistent; }
     public boolean isExpired(Instant now) { return !expiresAt.isAfter(now); }
     public boolean isConsumed() { return consumedAt != null; }
     public boolean isRevoked() { return revokedAt != null; }

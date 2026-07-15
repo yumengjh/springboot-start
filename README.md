@@ -59,7 +59,7 @@ APP_BOOTSTRAP_ADMIN_PASSWORD=请替换为强密码
 
 ## 接口测试页
 
-根目录的 `api-test.html` 是浏览器测试页。先启动服务，再双击打开它；页面默认填写 `admin`（密码不预填），登录后会加载用户管理、角色/权限目录 CRUD、角色权限分组、本人会话、运行时配置、CORS、接口/IP 策略、审计查询和公告示例。可选“保存登录状态”只会把 Refresh Token 保存在当前浏览器的 localStorage；退出登录或“退出全部设备”都会清除它。共享电脑不要启用此选项。
+管理后台位于相邻的 `springboot-admin` 项目：它通过 Vite 代理调用本服务，并使用 HttpOnly Refresh Cookie 实现登录、记住我、注册、自动刷新与退出。根目录的 `api-test.html` 用于其它 API 的手动调试；认证验证请使用管理后台，Refresh Token 不再暴露给浏览器 JavaScript。
 
 本地从 HTML 文件发起的跨域预检支持 `GET`、`POST`、`PUT`、`PATCH`、`DELETE` 和 `OPTIONS`；因此用户状态更新、角色分配和角色权限更新都可以直接在测试页执行。生产环境应将通配来源改为明确的受信任来源。
 

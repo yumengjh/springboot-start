@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - changeSet:
+      id: 009-normalize-refresh-session-persistence
+      author: starter
+      changes:
+        - sql:
+            sql: update refresh_sessions set persistent = false where persistent is null

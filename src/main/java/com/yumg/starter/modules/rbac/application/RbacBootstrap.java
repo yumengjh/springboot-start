@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class RbacBootstrap implements ApplicationRunner {
-    private static final List<String> CODES = List.of("system:user:read", "system:user:write", "system:role:read", "system:role:write", "system:role:assign", "system:config:read", "system:config:write", "system:audit:read", "example:announcement:read", "example:announcement:write", "example:announcement:delete");
+    private static final List<String> CODES = List.of("system:user:read", "system:user:write", "system:role:read", "system:role:write", "system:role:assign", "system:menu:read", "system:menu:write", "system:config:read", "system:config:write", "system:audit:read", "example:announcement:read", "example:announcement:write", "example:announcement:delete");
     private final PermissionRepository permissions; private final RoleRepository roles;
     public RbacBootstrap(PermissionRepository permissions, RoleRepository roles) { this.permissions = permissions; this.roles = roles; }
     @Override @Transactional public void run(ApplicationArguments args) {

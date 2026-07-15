@@ -16,6 +16,7 @@ users --< user_roles >-- roles --< role_permissions >-- permissions
 
 - `system:user:read`、`system:user:write`
 - `system:role:read`、`system:role:write`、`system:role:assign`
+- `system:menu:read`、`system:menu:write`
 - `system:config:read`、`system:config:write`
 - `system:audit:read`
 - `example:announcement:read`、`example:announcement:write`、`example:announcement:delete`
@@ -53,3 +54,36 @@ users --< user_roles >-- roles --< role_permissions >-- permissions
 - `POST /api/v1/admin/users/{id}/sessions/revoke`：撤销该用户全部 Refresh Session 并使现有 Access Token 立即失效，需 `system:user:write`，返回 `204`。
 
 支持 `ACTIVE`、`LOCKED`、`DISABLED`。锁定默认持续 15 分钟；禁用或锁定会撤销该用户全部 Refresh Token，并递增 Token 版本。
+
+## 动态菜单与路由
+
+菜单由 `navigation_menus` 表维护，读取路由时后端会按 JWT 中的权限过滤不可见、已停用或无权限的菜单。组件不是由后端下发文件路径，而是受控组件键；当前允许 `welcome`、`permission-page`、`menu-management`、`user-management`、`rbac-management`、`runtime-config`、`ip-rule-management`、`audit-log`、`announcement-management`、`account-security`。外链和 iframe 不受支持。
+
+- `GET /api/v1/navigation/routes`：所有已认证用户可调用，返回当前用户可访问的动态菜单树；无需额外菜单管理权限。
+- `GET /api/v1/navigation/menus`：读取完整菜单树，需 `system:menu:read`。
+- `POST /api/v1/navigation/menus`：创建菜单，需 `system:menu:write`。
+- `PUT /api/v1/navigation/menus/{id}`：更新菜单，需 `system:menu:write`。菜单编码不可改名。
+- `DELETE /api/v1/navigation/menus/{id}`：删除菜单，需 `system:menu:write`。有子菜单或内置菜单时返回 `409 CONFLICT`。
+
+菜单写入请求示例：
+
+```json
+{
+  "parentId": null,
+  "code": "menu-manager",
+  "title": "菜单管理",
+  "routePath": "/system/menu",
+  "componentKey": "menu-management",
+  "icon": "Menu",
+  "sortOrder": 100,
+  "menuType": "PAGE",
+  "requiredPermission": "system:menu:read",
+  "visible": true,
+  "enabled": true,
+  "keepAlive": false
+}
+```
+
+`menuType` 可为 `PAGE` 或 `DIRECTORY`；目录不得设置 `componentKey`，页面必须使用允许的组件键。引用的 `requiredPermission` 必须已存在；父级必须是目录，且不允许形成循环。系统会初始化首页、系统管理、内容管理、个人中心及其内置管理页面，它们不可删除、停用或修改。
+
+`springboot-admin` 使用 Element Plus 实现这些页面。页面里的写按钮仅是当前 JWT 权限的交互提示；即使绕过前端直接请求，服务端仍会按 `@PreAuthorize` 拒绝没有写权限的调用。

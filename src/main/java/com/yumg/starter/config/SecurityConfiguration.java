@@ -58,6 +58,7 @@ public class SecurityConfiguration {
             configuration.setAllowedOriginPatterns(csv(settings.string("security.cors.allowed-origins")));
             configuration.setAllowedMethods(csv(settings.string("security.cors.allowed-methods")));
             configuration.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-Trace-Id"));
+            configuration.setAllowCredentials(true);
             return configuration;
         };
     }

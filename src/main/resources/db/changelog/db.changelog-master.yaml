@@ -9,3 +9,11 @@ databaseChangeLog:
       file: db/changelog/changes/004-audit-event-version.yaml
   - include:
       file: db/changelog/changes/005-convert-postgres-instant-columns.yaml
+  - include:
+      file: db/changelog/changes/006-refresh-session-persistence.yaml
+  - include:
+      file: db/changelog/changes/007-restore-refresh-session-indexes.yaml
+  - include:
+      file: db/changelog/changes/008-navigation.yaml
+  - include:
+      file: db/changelog/changes/009-normalize-refresh-session-persistence.yaml

@@ -3,9 +3,9 @@
 所有认证接口都在 `/api/v1/auth` 下：
 
 - `POST /register`：注册，传入 `username`、`displayName`、`password`。
-- `POST /login`：登录，传入 `username`、`password`。
-- `POST /refresh`：刷新令牌，传入 `{"refreshToken":"..."}`。
-- `POST /logout`：当前设备登出，传入 `{"refreshToken":"..."}`。
+- `POST /login`：登录，传入 `username`、`password` 与可选的 `rememberMe`。
+- `POST /refresh`：从 HttpOnly Cookie 读取并轮换 Refresh Token。
+- `POST /logout`：撤销 HttpOnly Cookie 中的当前设备会话并清除 Cookie。
 
 用户名必须匹配 `[A-Za-z0-9_.-]{3,32}`，服务端会转换为小写。显示名最长 80 个字符；密码长度为 10–128。密码通过 Spring Security 的 DelegatingPasswordEncoder 加密，当前实际使用 BCrypt，响应永远不会返回密码哈希。
 
@@ -17,7 +17,6 @@
 {
   "data": {
     "accessToken": "RSA 签名的 JWT",
-    "refreshToken": "一次性不透明令牌",
     "tokenType": "Bearer",
     "expiresIn": 900
   },
@@ -26,21 +25,23 @@
 }
 ```
 
-Access Token 有效期为 15 分钟。调用受保护接口时使用：
+Access Token 有效期为 15 分钟。浏览器客户端只在内存中保留它，并调用受保护接口时使用：
 
 ```http
 Authorization: Bearer <access-token>
 ```
 
-JWT 包含用户 ID、用户名、令牌版本和有效权限列表。Refresh Token 有效期为 30 天，数据库只保存它的 SHA-256 哈希，绝不保存原文。
+JWT 包含用户 ID、用户名、令牌版本和有效权限列表。Refresh Token 有效期为 30 天，数据库只保存它的 SHA-256 哈希，绝不保存原文，也不将原文返回给浏览器 JavaScript。
+
+登录响应会设置路径为 `/api/v1/auth`、`HttpOnly`、`SameSite=Strict` 的 `refresh_token` Cookie。勾选 `rememberMe` 时 Cookie 的 `Max-Age` 为 30 天；未勾选时为会话 Cookie。生产 HTTPS 环境必须设置 `APP_AUTH_REFRESH_COOKIE_SECURE=true`。
 
 `timestamp` 为 Unix 毫秒时间戳。认证接口是公开端点，但仍受 IP 策略、接口禁用与限流等服务级安全策略约束。
 
 ## 刷新、复用与登出
 
-每次刷新都会消耗旧 Refresh Token，并返回一组新的 Access/Refresh Token；客户端必须原子地替换旧值。旧 Token 被再次使用时，服务会撤销该 Token 家族并返回 `401 AUTHENTICATION_REQUIRED`。
+每次刷新都会消耗旧 Refresh Token，并返回新的 Access Token 与轮换后的 HttpOnly Cookie；客户端无需、也不能读取 Refresh Token。旧 Token 被再次使用时，服务会撤销该 Token 家族并返回 `401 AUTHENTICATION_REQUIRED`。
 
-登出会撤销传入的 Refresh Token。修改密码会撤销该用户所有 Refresh Token；管理员可撤销指定用户的全部 Refresh Session，禁用/锁定账户也会撤销其 Refresh Session。
+登出会撤销 Cookie 中的 Refresh Token。修改密码会撤销该用户所有 Refresh Token；管理员可撤销指定用户的全部 Refresh Session，禁用/锁定账户也会撤销其 Refresh Session。
 
 当前登录用户还可以使用以下受保护接口：
 

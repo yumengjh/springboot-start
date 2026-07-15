@@ -24,7 +24,7 @@ class SqliteMigrationTest {
 
     private static final Set<String> CORE_TABLES = Set.of("users", "roles", "permissions",
             "user_roles", "role_permissions", "refresh_sessions", "system_settings",
-            "ip_access_rules", "audit_events", "announcements");
+            "ip_access_rules", "audit_events", "announcements", "navigation_menus");
 
     @TempDir
     static Path temporaryDirectory;
@@ -53,12 +53,15 @@ class SqliteMigrationTest {
         assertThat(indexColumns("user_roles", true)).contains(List.of("user_id", "role_id"));
         assertThat(indexColumns("role_permissions", true))
                 .contains(List.of("role_id", "permission_id"));
+        assertThat(indexColumns("navigation_menus", true))
+                .contains(List.of("code"), List.of("route_path"));
         assertThat(indexNames("users")).contains("idx_users_username");
         assertThat(indexNames("permissions")).contains("idx_permissions_code");
         assertThat(indexNames("refresh_sessions")).contains("idx_refresh_sessions_token_hash");
         assertThat(indexNames("audit_events")).contains("idx_audit_events_occurred_at");
         assertThat(indexNames("ip_access_rules")).contains("idx_ip_access_rules_lookup");
         assertThat(indexNames("announcements")).contains("idx_announcements_publication");
+        assertThat(indexNames("navigation_menus")).contains("idx_navigation_menus_parent_sort");
 
         assertThat(foreignKeyTargets("refresh_sessions")).contains("users");
         assertThat(foreignKeyTargets("announcements")).contains("users");
