@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.yumg.starter.common.api.ApiException;
 import com.yumg.starter.entities.ResumeDocument;
 import com.yumg.starter.modules.resume.infrastructure.ResumeDocumentRepository;

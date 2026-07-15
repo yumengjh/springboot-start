@@ -1,6 +1,6 @@
 package com.yumg.starter.modules.resume.application;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.yumg.starter.common.api.ApiException;
 import com.yumg.starter.entities.ResumeDocument;
 import com.yumg.starter.modules.resume.infrastructure.ResumeDocumentRepository;

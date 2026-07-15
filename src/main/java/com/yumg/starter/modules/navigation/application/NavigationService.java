@@ -24,7 +24,8 @@ public class NavigationService {
 
     private static final Set<String> COMPONENT_KEYS = Set.of("welcome", "permission-page",
             "menu-management", "user-management", "rbac-management", "runtime-config",
-            "ip-rule-management", "audit-log", "announcement-management", "account-security");
+            "ip-rule-management", "audit-log", "announcement-management", "resume-management",
+            "account-security");
 
     private final NavigationMenuRepository menus;
     private final PermissionRepository permissions;
