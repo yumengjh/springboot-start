@@ -17,3 +17,5 @@ spring:
 app:
   jwt:
     allow-ephemeral-key: true
+  sql-console:
+    enabled: true

@@ -16,6 +16,7 @@
 - [x] 8. 对接 `springboot-admin`：实现 HttpOnly Refresh Cookie、登录/注册、记住我、自动刷新与后端退出；动态菜单继续使用前端假数据。
 - [x] 9. 设计并实现数据库驱动的菜单/动态路由模块，复用 RBAC 权限，并在管理后台提供菜单 CRUD 与动态路由加载。
 - [x] 10. 将 `api-test.html` 覆盖的正式管理能力迁移为 Element Plus 多页面后台，并接入动态菜单与 RBAC 控制。
+- [x] 11. 建立可扩展的数据清理中心（GC）：资源注册、每资源策略、运行记录、调度与管理 API；同时提供受本地环境和权限双重限制的 SQL 调试台。
 
 ## 约束
 
@@ -23,3 +24,4 @@
 - 每个新行为先写失败测试，再实现。
 - Docker 仅用于配置/CI 验证；本地核心验证以 SQLite 为主。
 - Refresh Token 不得返回给浏览器 JavaScript；“记住我”仅控制 Refresh Cookie 的持久化。
+- SQL 调试仅允许 `local` Profile 且 `app.sql-console.enabled=true`，需要超级管理员的专属权限并写入审计日志；非本地环境不得暴露为可执行入口。

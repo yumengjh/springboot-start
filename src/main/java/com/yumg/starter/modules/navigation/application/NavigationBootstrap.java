@@ -38,6 +38,10 @@ public class NavigationBootstrap implements ApplicationRunner {
                 "Connection", 50, "system:config:read");
         seedPage(system, "audit-log", "审计日志", "/system/audit", "audit-log", "Document", 60,
                 "system:audit:read");
+        seedPage(system, "gc-management", "数据清理中心", "/system/gc", "gc-management", "Delete", 70,
+                "system:gc:read");
+        seedPage(system, "sql-console", "SQL 执行台", "/system/sql-console", "sql-console", "Monitor", 80,
+                "system:sql:execute");
 
         NavigationMenu content = seedDirectory("content", "内容管理", "/content", "Document", 200);
         seedPage(content, "announcement-management", "公告管理", "/content/announcements",

@@ -19,11 +19,21 @@ public class RateLimitService {
         long now = Instant.now().toEpochMilli();
         long duration = windowSeconds * 1000L;
         Window window = windows.compute(key, (ignored, current) -> {
-            if (current == null || now - current.startedAt >= duration) return new Window(now, 1, true);
-            if (current.count >= capacity) return new Window(current.startedAt, current.count, false);
-            return new Window(current.startedAt, current.count + 1, true);
+            if (current == null || now >= current.expiresAt) return new Window(now, now + duration, 1, true);
+            if (current.count >= capacity) return new Window(current.startedAt, current.expiresAt, current.count, false);
+            return new Window(current.startedAt, current.expiresAt, current.count + 1, true);
         });
         return window.allowed;
     }
-    private record Window(long startedAt, int count, boolean allowed) {}
+    public long cleanupExpired(Instant referenceTime) {
+        long now = referenceTime.toEpochMilli(); int before = windows.size();
+        windows.entrySet().removeIf(entry -> entry.getValue().expiresAt <= now);
+        return before - windows.size();
+    }
+    public long expiredStateCount(Instant referenceTime) {
+        long now = referenceTime.toEpochMilli();
+        return windows.values().stream().filter(window -> window.expiresAt <= now).count();
+    }
+    public int stateCount() { return windows.size(); }
+    private record Window(long startedAt, long expiresAt, int count, boolean allowed) {}
 }

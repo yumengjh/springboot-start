@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Set;
 import com.yumg.starter.modules.resume.application.ResumeFeedbackService;
 import com.yumg.starter.modules.resume.application.ResumeService;
+import com.yumg.starter.modules.maintenance.application.GcExecutionService;
+import com.yumg.starter.modules.maintenance.application.GcPolicyService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +29,8 @@ class SqliteMigrationTest {
     private static final Set<String> CORE_TABLES = Set.of("users", "roles", "permissions",
             "user_roles", "role_permissions", "refresh_sessions", "system_settings",
             "ip_access_rules", "audit_events", "announcements", "navigation_menus",
-            "resume_documents", "resume_feedbacks");
+            "resume_documents", "resume_feedbacks", "maintenance_gc_policies",
+            "maintenance_gc_runs", "maintenance_gc_locks");
 
     @TempDir
     static Path temporaryDirectory;
@@ -40,6 +43,12 @@ class SqliteMigrationTest {
 
     @Autowired
     private ResumeService resume;
+
+    @Autowired
+    private GcExecutionService gc;
+
+    @Autowired
+    private GcPolicyService gcPolicies;
 
     @DynamicPropertySource
     static void sqliteProperties(DynamicPropertyRegistry registry) {
@@ -71,6 +80,9 @@ class SqliteMigrationTest {
         assertThat(indexNames("ip_access_rules")).contains("idx_ip_access_rules_lookup");
         assertThat(indexNames("announcements")).contains("idx_announcements_publication");
         assertThat(indexNames("navigation_menus")).contains("idx_navigation_menus_parent_sort");
+        assertThat(indexNames("refresh_sessions")).contains("idx_refresh_sessions_user_issued",
+                "idx_refresh_sessions_family", "idx_refresh_sessions_expires_at");
+        assertThat(indexNames("maintenance_gc_runs")).contains("idx_maintenance_gc_runs_started_at");
 
         assertThat(foreignKeyTargets("refresh_sessions")).contains("users");
         assertThat(foreignKeyTargets("announcements")).contains("users");
@@ -112,6 +124,22 @@ class SqliteMigrationTest {
         var updated = resume.update(initial.content() + " ", initial.schemaVersion(), initial.version());
 
         assertThat(updated.version()).isEqualTo(initial.version() + 1);
+    }
+
+    @Test
+    void gcActuallyDeletesExpiredAuditRowsFromTheDatabase() {
+        String oldId = "00000000-0000-0000-0000-000000000777";
+        jdbc.update("""
+                insert into audit_events (id, action, result, occurred_at, version)
+                values (?, ?, ?, ?, ?)
+                """, oldId, "TEST_OLD_AUDIT", "SUCCESS", "2000-01-01T00:00:00Z", 0);
+        gcPolicies.update("audit-events", true, false, 1, 100);
+
+        var run = gc.run("MANUAL", false, List.of("audit-events"), "test-user");
+
+        assertThat(run.status()).isEqualTo("SUCCEEDED");
+        assertThat(jdbc.queryForObject("select count(*) from audit_events where id = ?", Integer.class, oldId))
+                .isZero();
     }
 
     private List<String> indexNames(String table) {

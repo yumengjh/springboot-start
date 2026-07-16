@@ -23,4 +23,11 @@ public interface RefreshSessionRepository extends JpaRepository<RefreshSession, 
     @Modifying
     @Query("update RefreshSession s set s.revokedAt = :now where s.userId = :userId and s.revokedAt is null")
     void revokeAllForUser(@Param("userId") String userId, @Param("now") Instant now);
+
+    @Query("select count(s) from RefreshSession s where s.expiresAt < :cutoff or (s.revokedAt is not null and s.revokedAt < :cutoff)")
+    long countRetiredBefore(@Param("cutoff") Instant cutoff);
+
+    @Modifying
+    @Query("delete from RefreshSession s where s.expiresAt < :cutoff or (s.revokedAt is not null and s.revokedAt < :cutoff)")
+    int deleteRetiredBefore(@Param("cutoff") Instant cutoff);
 }

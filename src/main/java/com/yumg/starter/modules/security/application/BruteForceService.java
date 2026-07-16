@@ -14,12 +14,23 @@ public class BruteForceService {
         if (!settings.enabled("security.brute-force.enabled")) return false;
         long now = Instant.now().toEpochMilli(); int threshold = settings.integer("security.brute-force.failure-threshold");
         Failures value = failures.compute(username, (ignored, current) -> {
-            if (current == null || now - current.startedAt >= settings.integer("security.brute-force.window-seconds") * 1000L) return new Failures(now, 1);
-            return new Failures(current.startedAt, current.count + 1);
+            long duration = settings.integer("security.brute-force.window-seconds") * 1000L;
+            if (current == null || now >= current.expiresAt) return new Failures(now, now + duration, 1);
+            return new Failures(current.startedAt, current.expiresAt, current.count + 1);
         });
         return value.count >= threshold;
     }
     public void clear(String username) { failures.remove(username); }
     public Instant lockUntil() { return Instant.now().plusSeconds(settings.integer("security.brute-force.lock-seconds")); }
-    private record Failures(long startedAt, int count) {}
+    public long cleanupExpired(Instant referenceTime) {
+        long now = referenceTime.toEpochMilli(); int before = failures.size();
+        failures.entrySet().removeIf(entry -> entry.getValue().expiresAt <= now);
+        return before - failures.size();
+    }
+    public long expiredStateCount(Instant referenceTime) {
+        long now = referenceTime.toEpochMilli();
+        return failures.values().stream().filter(value -> value.expiresAt <= now).count();
+    }
+    public int stateCount() { return failures.size(); }
+    private record Failures(long startedAt, long expiresAt, int count) {}
 }

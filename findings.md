@@ -10,3 +10,5 @@
 - SQLite 中 Liquibase 的 `addColumn` 会重建 `refresh_sessions` 并丢失二级索引；新增 007 变更集恢复唯一 `token_hash` 索引和查询索引。
 - 当前前端 `getAsyncRoutes()` 被临时实现为返回空数组；路由转换器则直接将后端 `component` 字符串映射到 `src/views`。缺少映射时会产生 `undefined` 组件，是“加载中”状态的高风险来源。
 - 后端 RBAC 已有角色、权限、用户角色和角色权限 CRUD，但没有菜单/路由实体、菜单读取接口或菜单管理 API；菜单功能应成为独立模块并仅引用现有权限编码。
+- 2026-07-16 运行性审查：`RateLimitService` 与 `BruteForceService` 的内存 Map 没有过期清理；`refresh_sessions` 缺少按 `user_id/issued_at`、`family_id`、`expires_at` 的维护索引，且失效会话没有生命周期清理。GC 需要以“资源”而不是裸表为扩展单位，避免针对任意表的危险通用删除。
+- SQL 调试能力仅面向当前 local 开发阶段：它必须由 Profile、显式配置、RBAC 三层共同保护，并默认屏蔽敏感列值；不能作为生产数据库后门。

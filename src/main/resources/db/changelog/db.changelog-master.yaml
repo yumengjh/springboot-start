@@ -25,3 +25,5 @@ databaseChangeLog:
       file: db/changelog/changes/012-resume-document.yaml
   - include:
       file: db/changelog/changes/013-resume-feedback.yaml
+  - include:
+      file: db/changelog/changes/014-maintenance-gc.yaml

@@ -44,3 +44,15 @@
 - 头像下拉菜单已增加“账户安全”“刷新会话”“退出系统”，覆盖纵向、横向和混合布局；账户安全页也提供刷新当前会话、退出当前登录和退出全部设备。刷新会话轮换 HttpOnly Refresh Cookie、更新内存 Access Token 与用户资料；任何 Token 不会显示或写入页面。`avatar-session-menu.test.mjs` 和 `pnpm typecheck` 通过。
 - 修复 `/api/v1/users/me/sessions` 的 `500 INTERNAL_ERROR`（traceId `c4878547f72b43079904397999017909`）：定位到 006 迁移前的 150 条 Refresh Session 缺少 `persistent` 值，而实体字段是基本类型 `boolean`，Hibernate 读取时无法注入 `NULL`。新增 009 Liquibase 迁移归一为 `false`，本地重启时已实际更新 150 条；数据库复核空值为 0，健康检查为 `UP`，迁移回归测试通过。
 - 修复 Vite 开发代理与依赖布局：重启前端服务后，`/actuator/health`、`/swagger-ui/index.html`、`/v3/api-docs` 均由 8848 正确代理至 8080，不再回退到 SPA HTML。补齐 `vue-demi`（CDN 插件）与 `tippy.js`（`vue-tippy` peer）为直接依赖，避免 pnpm 不创建根链接导致开发服务器无法重启；前端入口和 `pnpm typecheck` 均通过。
+
+## 2026-07-16
+
+- 完成后端运行性审查：全量 Maven 基线为 83 个测试通过、0 失败、1 个 PostgreSQL/Testcontainers 测试跳过。
+- 用户确认直接实现 GC 资源/策略中心，并要求在开发阶段增加受限 SQL 调试台；第 11 阶段开始。
+- 已完成 014 Liquibase 迁移：GC 策略、运行记录、锁表以及 Refresh Session 的用户/家族/到期索引。SQLite 迁移断言先失败后通过。
+- 已完成 GC 初始资源和调度器：Refresh Token、审计日志、限流状态、登录失败状态均通过 `GcResource` 注册；策略独立持久化，自动任务使用数据库锁。`GcExecutionServiceTest` 先因缺类失败后通过。
+- 已完成 GC 管理 API、本地 SQL 执行 API、后台 GC 可视化与 SQL 执行台；导航项按 `system:gc:read` 与 `system:sql:execute` 权限展示。SQL 控制台仅 local+显式开关可运行，多语句拒绝、写操作确认、敏感列脱敏和审计均已覆盖。
+- 验证：后端 `./mvnw test` 为 85 通过、0 失败、1 跳过；管理端 `pnpm typecheck`、`pnpm build` 成功。
+- GC 结果协议已改为结构化 JSON：每次任务会返回总候选数、总删除数和各资源的候选/删除/说明，管理端不再显示 `resource:a/b` 压缩字符串。GC 页面重构为运行概览、资源策略、运行记录三个视图，支持单资源预览/真实清理、按预览/真实/来源/状态筛选以及任务详情抽屉。
+- 为结构化结果先补充了失败测试，再实现编码/解码；最新验证为后端 `./mvnw test` 87 通过、0 失败、1 跳过，管理端 `pnpm typecheck && pnpm build` 成功。已重启后端，`http://localhost:8080/actuator/health` 与经 8848 代理的健康检查均为 `UP`。
+- 修复 GC 策略“编辑后立即预览被旧值覆盖”：前端策略改为显式未保存状态，预览/真实清理前会等待保存目标策略完成后才调用执行接口。新增独立的 `maintenance.gc.schedule.enabled`，GC 页可管理全局自动清理开关和 1–1440 分钟执行间隔；关闭自动计划不会影响手动运行。新增调度开关回归测试先失败后通过；全量后端测试为 88 通过、0 失败、1 跳过，前端类型检查和构建通过。重启后已确认新设置初始化至 SQLite。

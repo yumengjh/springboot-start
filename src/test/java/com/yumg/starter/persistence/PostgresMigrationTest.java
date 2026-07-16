@@ -21,7 +21,9 @@ class PostgresMigrationTest {
 
     private static final Set<String> CORE_TABLES = Set.of("users", "roles", "permissions",
             "user_roles", "role_permissions", "refresh_sessions", "system_settings",
-            "ip_access_rules", "audit_events", "announcements");
+            "ip_access_rules", "audit_events", "announcements", "navigation_menus",
+            "resume_documents", "resume_feedbacks", "maintenance_gc_policies",
+            "maintenance_gc_runs", "maintenance_gc_locks");
 
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
 
@@ -55,7 +57,9 @@ class PostgresMigrationTest {
         assertThat(uniqueColumnGroups("role_permissions")).contains("role_id,permission_id");
         assertThat(indexNames()).contains("idx_users_username", "idx_permissions_code",
                 "idx_refresh_sessions_token_hash", "idx_audit_events_occurred_at",
-                "idx_ip_access_rules_lookup", "idx_announcements_publication");
+                "idx_ip_access_rules_lookup", "idx_announcements_publication",
+                "idx_refresh_sessions_user_issued", "idx_refresh_sessions_family",
+                "idx_refresh_sessions_expires_at", "idx_maintenance_gc_runs_started_at");
         assertThat(foreignKeyTargets("refresh_sessions")).contains("users");
         assertThat(foreignKeyTargets("announcements")).contains("users");
         assertThat(foreignKeyTargets("role_permissions")).contains("roles", "permissions");
