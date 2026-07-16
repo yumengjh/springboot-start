@@ -2,6 +2,16 @@ databaseChangeLog:
   - changeSet:
       id: 007-restore-refresh-session-indexes
       author: starter
+      # This changeset was amended to avoid recreating an index that already
+      # exists on databases which preserve indexes during an ALTER TABLE.
+      # Existing deployments may already have recorded the previous checksum.
+      validCheckSum: "9:582d7019a86ede817c5b6d2638167650"
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                tableName: refresh_sessions
+                indexName: idx_refresh_sessions_token_hash
       changes:
         # SQLite rebuilds the table for addColumn and drops its secondary indexes.
         - createIndex:
