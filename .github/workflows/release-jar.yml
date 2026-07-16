@@ -1,0 +1,103 @@
+name: Publish JAR artifact
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: jar-artifact-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish-jar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate release tag
+        id: release
+        env:
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "release tag must be vMAJOR.MINOR.PATCH (for example v0.1.0)" >&2
+            exit 1
+          fi
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build and verify JAR
+        run: ./mvnw --batch-mode verify
+
+      - name: Prepare release artifact
+        id: artifact
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar_path="$RUNNER_TEMP/application-$VERSION.jar"
+          cp target/application.jar "$jar_path"
+          sha256sum "$jar_path" | awk '{print $1}' > "$jar_path.sha256"
+          echo "jar_path=$jar_path" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(cat "$jar_path.sha256")" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the latest three JAR versions
+        env:
+          ARTIFACT_BRANCH: deploy-artifacts
+          VERSION: ${{ steps.release.outputs.version }}
+          SOURCE_SHA: ${{ github.sha }}
+          JAR_PATH: ${{ steps.artifact.outputs.jar_path }}
+          JAR_SHA256: ${{ steps.artifact.outputs.sha256 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git fetch --depth=1 origin "refs/heads/$ARTIFACT_BRANCH:refs/remotes/origin/$ARTIFACT_BRANCH"; then
+            git checkout -B "$ARTIFACT_BRANCH" "origin/$ARTIFACT_BRANCH"
+          else
+            git checkout --orphan "$ARTIFACT_BRANCH"
+            git rm -rf . || true
+          fi
+
+          mkdir -p releases
+          jar_name="application-$VERSION.jar"
+          cp "$JAR_PATH" "releases/$jar_name"
+          printf '%s  %s\n' "$JAR_SHA256" "$jar_name" > "releases/$jar_name.sha256"
+
+          versions_file="$RUNNER_TEMP/versions.txt"
+          {
+            printf '%s\n' "$VERSION"
+            if [[ -f releases/versions.txt ]]; then
+              grep -Fxv "$VERSION" releases/versions.txt || true
+            fi
+          } | head -n 3 > "$versions_file"
+          mv "$versions_file" releases/versions.txt
+
+          for jar in releases/application-v*.jar; do
+            version="${jar#releases/application-}"
+            version="${version%.jar}"
+            if ! grep -Fxq "$version" releases/versions.txt; then
+              rm -f "$jar" "$jar.sha256"
+            fi
+          done
+
+          printf '{"version":"%s","commit":"%s","jar":"%s","sha256":"%s"}\n' \
+            "$VERSION" "$SOURCE_SHA" "$jar_name" "$JAR_SHA256" > releases/latest.json
+
+          git add releases
+          git commit -m "release: publish $VERSION JAR artifact"
+          git push origin "$ARTIFACT_BRANCH"
