@@ -2,10 +2,10 @@ package com.yumg.starter.modules.announcements.api;
 
 import com.yumg.starter.modules.announcements.api.dto.*;
 import com.yumg.starter.modules.announcements.application.AnnouncementService;
+import com.yumg.starter.common.api.PageResponse;
 import com.yumg.starter.common.web.PublicApi;
 import com.yumg.starter.common.web.PublicApiAccess;
 import jakarta.validation.Valid;
-import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -33,8 +33,9 @@ public class AnnouncementController {
 
     @GetMapping("/manage")
     @PreAuthorize("hasAuthority('example:announcement:read')")
-    public List<AnnouncementResponse> all() {
-        return announcements.all();
+    public PageResponse<AnnouncementResponse> all(@RequestParam(defaultValue = "0") @jakarta.validation.constraints.Min(0) int page,
+                                                    @RequestParam(defaultValue = "20") @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(100) int size) {
+        return announcements.managedPage(page, size);
     }
 
     @GetMapping("/manage/{id}")

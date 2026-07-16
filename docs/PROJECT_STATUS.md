@@ -27,8 +27,9 @@
 4. 可信代理与真实客户端 IP：仅来自 `APP_SECURITY_TRUSTED_PROXIES` 的直接代理才解析 `X-Forwarded-For`。
 5. 持久化 IP 规则：提供 CRUD、有效期、备注和审计；运行时字符串策略仍作为兼容的全局策略。
 6. `/api/v1/system/info`、build/git 元数据、受控 Actuator（health/info/metrics）已提供；Maven 构建会生成 `git.properties`，无 Git 仓库的源码包会安全降级为 `null`。
-7. OpenAPI 已声明 Bearer 认证、公开公告接口和通用错误响应组件，并为认证、用户、RBAC、运行时配置、审计、IP 规则、系统信息和公告模块分组/标记。
+7. OpenAPI 已声明 Bearer 认证、公开公告接口和通用错误响应组件，并为认证、用户、RBAC、运行时配置、审计、IP 规则、系统信息和公告模块分组/标记；Springdoc 仅在 `local` Profile 默认启用。
 8. SQLite 启动、匿名/鉴权烟测和完整 Maven 测试在本地验证；PostgreSQL/Testcontainers 仍依赖可用 Docker，由 GitHub CI 验证。
+9. SQL 执行台对写入 CTE/执行计划使用保守危险判定；IP 访问规则采用内存快照；GC 调度暴露最近执行状态并接入 Actuator 健康检查；公告管理列表使用分页。
 
 ## 有意不包含在第一版
 

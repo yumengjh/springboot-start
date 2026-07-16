@@ -28,5 +28,7 @@ class SqlConsoleServiceTest {
         SqlConsoleService enabled = new SqlConsoleService(Mockito.mock(JdbcTemplate.class), Mockito.mock(AuditService.class), local, true);
         assertThatThrownBy(() -> enabled.execute("select 1; select 2", false)).isInstanceOf(ApiException.class);
         assertThatThrownBy(() -> enabled.execute("delete from users", false)).isInstanceOf(ApiException.class);
+        assertThatThrownBy(() -> enabled.execute("with removed as (delete from users returning id) select * from removed", false)).isInstanceOf(ApiException.class);
+        assertThatThrownBy(() -> enabled.execute("explain analyze delete from users", false)).isInstanceOf(ApiException.class);
     }
 }

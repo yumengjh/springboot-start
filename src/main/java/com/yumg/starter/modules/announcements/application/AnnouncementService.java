@@ -10,6 +10,8 @@ import com.yumg.starter.modules.security.application.AuditService;
 import com.yumg.starter.modules.users.application.UserLookupService;
 import java.util.Map;
 import java.util.List;
+import com.yumg.starter.common.api.PageResponse;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
   return new AnnouncementPublicContentResponse(item.getTitle(),item.getContent(),users.displayNamesById(List.of(item.getAuthorId())).get(item.getAuthorId()),item.getVersion());
  }
  @Transactional(readOnly=true) public List<AnnouncementResponse> all(){return announcements.findAll(Sort.by(Sort.Direction.DESC, "updatedAt")).stream().map(AnnouncementResponse::from).toList();}
+ @Transactional(readOnly=true) public PageResponse<AnnouncementResponse> managedPage(int page,int size){return PageResponse.from(announcements.findAll(PageRequest.of(page,size,Sort.by(Sort.Direction.DESC,"updatedAt"))).map(AnnouncementResponse::from));}
  @Transactional(readOnly=true) public AnnouncementResponse get(String id){return AnnouncementResponse.from(find(id));}
  @Transactional public AnnouncementResponse create(String actor,AnnouncementRequest request){Announcement item=announcements.save(new Announcement(request.title().trim(),request.content().trim(),actor)); audit.event("ANNOUNCEMENT_CREATED","Announcement",item.getId()); return AnnouncementResponse.from(item);}
  @Transactional public AnnouncementResponse update(String id,AnnouncementRequest request){Announcement item=find(id);item.update(request.title().trim(),request.content().trim());audit.event("ANNOUNCEMENT_UPDATED","Announcement",id);return AnnouncementResponse.from(item);}

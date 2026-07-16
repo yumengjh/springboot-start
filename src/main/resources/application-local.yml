@@ -19,3 +19,8 @@ app:
     allow-ephemeral-key: true
   sql-console:
     enabled: true
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

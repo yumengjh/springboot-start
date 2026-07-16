@@ -4,7 +4,7 @@
 
 - `GET /api/v1/announcements`：公开读取已发布公告列表。
 - `GET /api/v1/announcements/{id}`：公开读取一条已发布公告的内容。
-- `GET /api/v1/announcements/manage`：读取全部公告（含草稿），需要 `example:announcement:read`。
+- `GET /api/v1/announcements/manage?page=0&size=20`：分页读取公告（含草稿），需要 `example:announcement:read`；`size` 最大为 100。
 - `GET /api/v1/announcements/manage/{id}`：读取任意公告详情，需要 `example:announcement:read`。
 - `POST /api/v1/announcements`：创建草稿，需要 `example:announcement:write`。
 - `PUT /api/v1/announcements/{id}`：修改标题和内容，需要 `example:announcement:write`。

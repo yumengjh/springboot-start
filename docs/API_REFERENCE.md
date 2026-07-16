@@ -661,7 +661,20 @@ Authorization: Bearer <accessToken>
 #### `GET /api/v1/announcements/manage`
 
 | 权限 | `example:announcement:read` |
-| 成功 | `200 OK`，返回全部公告（包含草稿和已发布） |
+| 查询参数 | `page`：从 0 开始，默认 0；`size`：默认 20，范围 1–100 |
+| 成功 | `200 OK`，按 `updatedAt` 倒序返回公告分页（包含草稿和已发布） |
+
+响应 `data` 为标准分页对象：
+
+```json
+{
+  "items": [{ "id": "uuid", "title": "维护通知", "published": false, "version": 1 }],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
 
 #### `GET /api/v1/announcements/manage/{id}`
 
@@ -713,11 +726,11 @@ Authorization: Bearer <accessToken>
 
 ### `GET /v3/api-docs`
 
-公开返回当前服务生成的 OpenAPI JSON。适合导入 Postman、Insomnia 或生成客户端。不是业务信封。
+仅本地开发 Profile 默认公开当前服务生成的 OpenAPI JSON。适合导入 Postman、Insomnia 或生成客户端。不是业务信封；其他 Profile 默认关闭。
 
 ### `GET /swagger-ui/index.html`
 
-公开返回 Swagger UI 静态页面。生产环境可通过 Springdoc 配置关闭或在网关层保护。
+仅本地开发 Profile 默认公开 Swagger UI 静态页面；其他 Profile 默认关闭，可按部署需要在网关层或配置中显式启用。
 
 ### Actuator
 
