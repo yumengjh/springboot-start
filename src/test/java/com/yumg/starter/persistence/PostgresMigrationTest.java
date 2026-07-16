@@ -71,6 +71,18 @@ class PostgresMigrationTest {
                 .containsExactly("character varying", 64);
         assertThat(columnType("refresh_sessions", "issued_at"))
                 .containsExactly("character varying", 64);
+        assertThat(columnType("navigation_menus", "created_at"))
+                .containsExactly("character varying", 64);
+        assertThat(columnType("navigation_menus", "updated_at"))
+                .containsExactly("character varying", 64);
+        assertThat(columnType("resume_documents", "created_at"))
+                .containsExactly("character varying", 64);
+        assertThat(columnType("resume_documents", "updated_at"))
+                .containsExactly("character varying", 64);
+        assertThat(columnType("resume_feedbacks", "created_at"))
+                .containsExactly("character varying", 64);
+        assertThat(columnType("resume_feedbacks", "updated_at"))
+                .containsExactly("character varying", 64);
     }
 
     private List<String> uniqueColumnGroups(String table) {
