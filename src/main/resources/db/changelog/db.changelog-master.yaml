@@ -23,3 +23,5 @@ databaseChangeLog:
       file: db/changelog/changes/011-remove-navigation-menu-roles.yaml
   - include:
       file: db/changelog/changes/012-resume-document.yaml
+  - include:
+      file: db/changelog/changes/013-resume-feedback.yaml

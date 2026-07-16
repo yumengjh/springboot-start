@@ -49,6 +49,7 @@ public class ResumeService {
         }
         validator.validate(content);
         document.replace(content, schemaVersion);
+        documents.flush();
         audit.event("RESUME_UPDATED", "ResumeDocument", document.getId());
         return toContent(document);
     }
