@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM eclipse-temurin:21-jdk AS build
+FROM eclipse-temurin:25-jdk AS build
 WORKDIR /workspace
 ARG APP_VERSION=0.0.1-SNAPSHOT
 
@@ -17,7 +17,7 @@ RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -q -DskipTests -Drevision="$AP
     && test -f target/application.jar \
     && cp target/application.jar /workspace/app.jar
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 RUN groupadd --system --gid 10001 app \
     && useradd --system --uid 10001 --gid app --home-dir /app --shell /usr/sbin/nologin app \
     && install -d -o app -g app /app/data
